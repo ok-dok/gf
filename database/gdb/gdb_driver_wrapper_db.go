@@ -34,7 +34,7 @@ func (d *DriverWrapperDB) Open(node *ConfigNode) (db *sql.DB, err error) {
 	return d.DB.Open(node)
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database.
 // It's mainly used in cli tool chain for automatically generating the models.
 func (d *DriverWrapperDB) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
 	ctx = context.WithValue(ctx, ctxKeyInternalProducedSQL, struct{}{})
@@ -42,7 +42,7 @@ func (d *DriverWrapperDB) Tables(ctx context.Context, schema ...string) (tables 
 }
 
 // TableFields retrieves and returns the fields' information of specified table of current
-// schema.
+// database.
 //
 // The parameter `link` is optional, if given nil it automatically retrieves a raw sql connection
 // as its link to proceed necessary sql query.
@@ -72,7 +72,7 @@ func (d *DriverWrapperDB) TableFields(
 			`%s%s@%s#%s`,
 			cachePrefixTableFields,
 			d.GetGroup(),
-			gutil.GetOrDefaultStr(d.GetSchema(), schema...),
+			gutil.GetOrDefaultStr(d.GetDatabase(), schema...),
 			table,
 		)
 		value = tableFieldsMap.GetOrSetFuncLock(cacheKey, func() interface{} {

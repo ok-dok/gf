@@ -62,10 +62,10 @@ func Test_Master_Slave(t *testing.T) {
 	masterSlaveDB := g.DB(configKey)
 	gtest.C(t, func(t *gtest.T) {
 		table := "table_" + guid.S()
-		createTableWithDb(masterSlaveDB.Schema("master"), table)
-		createTableWithDb(masterSlaveDB.Schema("slave"), table)
-		defer dropTableWithDb(masterSlaveDB.Schema("master"), table)
-		defer dropTableWithDb(masterSlaveDB.Schema("slave"), table)
+		createTableWithDb(masterSlaveDB.Database("master"), table)
+		createTableWithDb(masterSlaveDB.Database("slave"), table)
+		defer dropTableWithDb(masterSlaveDB.Database("master"), table)
+		defer dropTableWithDb(masterSlaveDB.Database("slave"), table)
 
 		// Data insert to master.
 		array := garray.New(true)

@@ -159,7 +159,7 @@ func createInitTable(table ...string) (name string) {
 			"create_time":  gtime.Now().String(),
 		})
 	}
-	result, err := db.Schema(TestDbName).Insert(context.Background(), name, array.Slice())
+	result, err := db.Database(TestDbName).Insert(context.Background(), name, array.Slice())
 	gtest.Assert(err, nil)
 
 	n, e := result.RowsAffected()

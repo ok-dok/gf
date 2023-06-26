@@ -6,25 +6,25 @@
 
 package gdb
 
-// Schema is a schema object from which it can then create a Model.
-type Schema struct {
+// Database is a database object from which it can then create a Model.
+type Database struct {
 	DB
 }
 
-// Schema creates and returns a schema.
-func (c *Core) Schema(schema string) *Schema {
-	// Do not change the schema of the original db,
-	// it here creates a new db and changes its schema.
+// Database creates and returns a database.
+func (c *Core) Database(database string) *Database {
+	// Do not change the database of the original db,
+	// it here creates a new db and changes its database.
 	db, err := NewByGroup(c.GetGroup())
 	if err != nil {
 		panic(err)
 	}
 	core := db.GetCore()
-	// Different schema share some same objects.
+	// Different database share some same objects.
 	core.logger = c.logger
 	core.cache = c.cache
-	core.schema = schema
-	return &Schema{
+	core.database = database
+	return &Database{
 		DB: db,
 	}
 }

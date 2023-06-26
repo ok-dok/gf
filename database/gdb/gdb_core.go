@@ -126,9 +126,9 @@ func (c *Core) Close(ctx context.Context) (err error) {
 
 // Master creates and returns a connection from master node if master-slave configured.
 // It returns the default connection if master-slave not configured.
-func (c *Core) Master(schema ...string) (*sql.DB, error) {
+func (c *Core) Master(database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.schema, schema...)
+		usedSchema   = gutil.GetOrDefaultStr(c.database, database...)
 		charL, charR = c.db.GetChars()
 	)
 	return c.getSqlDb(true, gstr.Trim(usedSchema, charL+charR))
@@ -136,9 +136,9 @@ func (c *Core) Master(schema ...string) (*sql.DB, error) {
 
 // Slave creates and returns a connection from slave node if master-slave configured.
 // It returns the default connection if master-slave not configured.
-func (c *Core) Slave(schema ...string) (*sql.DB, error) {
+func (c *Core) Slave(database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.schema, schema...)
+		usedSchema   = gutil.GetOrDefaultStr(c.database, database...)
 		charL, charR = c.db.GetChars()
 	)
 	return c.getSqlDb(false, gstr.Trim(usedSchema, charL+charR))
@@ -743,7 +743,7 @@ func (c *Core) writeSqlToLogger(ctx context.Context, sql *Sql) {
 	}
 	s := fmt.Sprintf(
 		"[%3d ms] [%s] [%s] [rows:%-3d] %s%s",
-		sql.End-sql.Start, sql.Group, sql.Schema, sql.RowsAffected, transactionIdStr, sql.Format,
+		sql.End-sql.Start, sql.Group, sql.Database, sql.RowsAffected, transactionIdStr, sql.Format,
 	)
 	if sql.Error != nil {
 		s += "\nError: " + sql.Error.Error()

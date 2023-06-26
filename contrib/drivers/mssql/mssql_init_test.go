@@ -28,8 +28,8 @@ var (
 const (
 	TableSize        = 10
 	TableName        = "t_user"
-	TestSchema1      = "test1"
-	TestSchema2      = "test2"
+	TestDatabase1    = "test1"
+	TestDatabase2    = "test2"
 	TableNamePrefix1 = "gf_"
 	TestDbUser       = "sa"
 	TestDbPass       = "LoremIpsum86"
@@ -114,7 +114,7 @@ func createTable(table ...string) (name string) {
 		gtest.Fatal(err)
 	}
 
-	db.Schema("test")
+	db.Database("test")
 	return
 }
 

@@ -46,11 +46,11 @@ func (c *Core) GetLink(ctx context.Context, master bool, schema string) (Link, e
 	return link, nil
 }
 
-// MasterLink acts like function Master but with additional `schema` parameter specifying
-// the schema for the connection. It is defined for internal usage.
+// MasterLink acts like function Master but with additional `database` parameter specifying
+// the database for the connection. It is defined for internal usage.
 // Also see Master.
-func (c *Core) MasterLink(schema ...string) (Link, error) {
-	db, err := c.db.Master(schema...)
+func (c *Core) MasterLink(database ...string) (Link, error) {
+	db, err := c.db.Master(database...)
 	if err != nil {
 		return nil, err
 	}
@@ -60,11 +60,11 @@ func (c *Core) MasterLink(schema ...string) (Link, error) {
 	}, nil
 }
 
-// SlaveLink acts like function Slave but with additional `schema` parameter specifying
-// the schema for the connection. It is defined for internal usage.
+// SlaveLink acts like function Slave but with additional `database` parameter specifying
+// the database for the connection. It is defined for internal usage.
 // Also see Slave.
-func (c *Core) SlaveLink(schema ...string) (Link, error) {
-	db, err := c.db.Slave(schema...)
+func (c *Core) SlaveLink(database ...string) (Link, error) {
+	db, err := c.db.Slave(database...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,14 +117,14 @@ func (c *Core) GetChars() (charLeft string, charRight string) {
 	return "", ""
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database.
 // It's mainly used in cli tool chain for automatically generating the models.
 func (c *Core) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
 	return
 }
 
 // TableFields retrieves and returns the fields' information of specified table of current
-// schema.
+// database.
 //
 // The parameter `link` is optional, if given nil it automatically retrieves a raw sql connection
 // as its link to proceed necessary sql query.
@@ -135,17 +135,17 @@ func (c *Core) Tables(ctx context.Context, schema ...string) (tables []string, e
 //
 // It's using cache feature to enhance the performance, which is never expired util the
 // process restarts.
-func (c *Core) TableFields(ctx context.Context, table string, schema ...string) (fields map[string]*TableField, err error) {
+func (c *Core) TableFields(ctx context.Context, table string, database ...string) (fields map[string]*TableField, err error) {
 	return
 }
 
 // ClearTableFields removes certain cached table fields of current configuration group.
-func (c *Core) ClearTableFields(ctx context.Context, table string, schema ...string) (err error) {
+func (c *Core) ClearTableFields(ctx context.Context, table string, database ...string) (err error) {
 	tableFieldsMap.Remove(fmt.Sprintf(
 		`%s%s@%s#%s`,
 		cachePrefixTableFields,
 		c.db.GetGroup(),
-		gutil.GetOrDefaultStr(c.db.GetSchema(), schema...),
+		gutil.GetOrDefaultStr(c.db.GetDatabase(), database...),
 		table,
 	))
 	return

@@ -216,12 +216,12 @@ func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string,
 //
 // Also see DriverMysql.TableFields.
 func (d *Driver) TableFields(
-	ctx context.Context, table string, schema ...string,
+	ctx context.Context, table string, database ...string,
 ) (fields map[string]*gdb.TableField, err error) {
 	var (
 		result       gdb.Result
 		link         gdb.Link
-		usedSchema   = gutil.GetOrDefaultStr(d.GetSchema(), schema...)
+		usedDatabase = gutil.GetOrDefaultStr(d.GetDatabase(), database...)
 		structureSql = fmt.Sprintf(`
 SELECT 
     COLUMN_NAME AS FIELD, 
@@ -234,7 +234,7 @@ FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '%s' ORDER BY COLUMN_ID`,
 			strings.ToUpper(table),
 		)
 	)
-	if link, err = d.SlaveLink(usedSchema); err != nil {
+	if link, err = d.SlaveLink(usedDatabase); err != nil {
 		return nil, err
 	}
 	structureSql, _ = gregex.ReplaceString(`[\n\r\s]+`, " ", gstr.Trim(structureSql))

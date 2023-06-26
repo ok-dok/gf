@@ -27,13 +27,13 @@ func (m *Model) QuoteWord(s string) string {
 }
 
 // TableFields retrieves and returns the fields' information of specified table of current
-// schema.
+// database.
 //
 // Also see DriverMysql.TableFields.
 func (m *Model) TableFields(tableStr string, schema ...string) (fields map[string]*TableField, err error) {
 	var (
 		table      = m.db.GetCore().guessPrimaryTableName(tableStr)
-		usedSchema = gutil.GetOrDefaultStr(m.schema, schema...)
+		usedSchema = gutil.GetOrDefaultStr(m.database, schema...)
 	)
 	return m.db.TableFields(m.GetCtx(), table, usedSchema)
 }
@@ -117,7 +117,7 @@ func (m *Model) filterDataForInsertOrUpdate(data interface{}) (interface{}, erro
 func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEmpty bool) (Map, error) {
 	var err error
 	data, err = m.db.GetCore().mappingAndFilterData(
-		m.GetCtx(), m.schema, m.tablesInit, data, m.filter,
+		m.GetCtx(), m.database, m.tablesInit, data, m.filter,
 	)
 	if err != nil {
 		return nil, err
@@ -206,13 +206,13 @@ func (m *Model) getLink(master bool) Link {
 	}
 	switch linkType {
 	case linkTypeMaster:
-		link, err := m.db.GetCore().MasterLink(m.schema)
+		link, err := m.db.GetCore().MasterLink(m.database)
 		if err != nil {
 			panic(err)
 		}
 		return link
 	case linkTypeSlave:
-		link, err := m.db.GetCore().SlaveLink(m.schema)
+		link, err := m.db.GetCore().SlaveLink(m.database)
 		if err != nil {
 			panic(err)
 		}

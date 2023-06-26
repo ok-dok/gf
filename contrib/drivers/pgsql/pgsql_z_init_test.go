@@ -22,7 +22,7 @@ import (
 const (
 	TableSize   = 10
 	TablePrefix = "t_"
-	SchemaName  = "test"
+	Database    = "test"
 	CreateTime  = "2018-10-24 10:00:00"
 )
 
@@ -48,13 +48,13 @@ func init() {
 
 	if configNode.Name == "" {
 		schemaTemplate := "SELECT 'CREATE DATABASE %s' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '%s')"
-		if _, err := db.Exec(ctx, fmt.Sprintf(schemaTemplate, SchemaName, SchemaName)); err != nil {
+		if _, err := db.Exec(ctx, fmt.Sprintf(schemaTemplate, Database, Database)); err != nil {
 			gtest.Error(err)
 		}
 
-		db = db.Schema(SchemaName)
+		db = db.Database(Database)
 	} else {
-		db = db.Schema(configNode.Name)
+		db = db.Database(configNode.Name)
 	}
 
 }

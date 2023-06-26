@@ -33,7 +33,7 @@ type DB interface {
 	// Model creation.
 	// ===========================================================================
 
-	// Model creates and returns a new ORM model from given schema.
+	// Model creates and returns a new ORM model from given database.
 	// The parameter `table` can be more than one table names, and also alias name, like:
 	// 1. Model names:
 	//    Model("user")
@@ -47,9 +47,9 @@ type DB interface {
 	// Raw creates and returns a model based on a raw sql not a table.
 	Raw(rawSql string, args ...interface{}) *Model
 
-	// Schema creates and returns a schema.
-	// Also see Core.Schema.
-	Schema(schema string) *Schema
+	// Database creates and returns a database.
+	// Also see Core.Database.
+	Database(database string) *Database
 
 	// With creates and returns an ORM model based on metadata of given object.
 	// Also see Core.With.
@@ -127,8 +127,8 @@ type DB interface {
 	// Master/Slave specification support.
 	// ===========================================================================
 
-	Master(schema ...string) (*sql.DB, error) // See Core.Master.
-	Slave(schema ...string) (*sql.DB, error)  // See Core.Slave.
+	Master(database ...string) (*sql.DB, error) // See Core.Master.
+	Slave(database ...string) (*sql.DB, error)  // See Core.Slave.
 
 	// ===========================================================================
 	// Ping-Pong.
@@ -151,7 +151,7 @@ type DB interface {
 	GetCache() *gcache.Cache            // See Core.GetCache.
 	SetDebug(debug bool)                // See Core.SetDebug.
 	GetDebug() bool                     // See Core.GetDebug.
-	GetSchema() string                  // See Core.GetSchema.
+	GetDatabase() string                // See Core.GetDatabase.
 	GetPrefix() string                  // See Core.GetPrefix.
 	GetGroup() string                   // See Core.GetGroup.
 	SetDryRun(enabled bool)             // See Core.SetDryRun.
@@ -170,8 +170,8 @@ type DB interface {
 	GetCtx() context.Context                                                                                 // See Core.GetCtx.
 	GetCore() *Core                                                                                          // See Core.GetCore
 	GetChars() (charLeft string, charRight string)                                                           // See Core.GetChars.
-	Tables(ctx context.Context, schema ...string) (tables []string, err error)                               // See Core.Tables. The driver must implement this function.
-	TableFields(ctx context.Context, table string, schema ...string) (map[string]*TableField, error)         // See Core.TableFields. The driver must implement this function.
+	Tables(ctx context.Context, database ...string) (tables []string, err error)                             // See Core.Tables. The driver must implement this function.
+	TableFields(ctx context.Context, table string, database ...string) (map[string]*TableField, error)       // See Core.TableFields. The driver must implement this function.
 	ConvertDataForRecord(ctx context.Context, data interface{}) (map[string]interface{}, error)              // See Core.ConvertDataForRecord
 	ConvertValueForLocal(ctx context.Context, fieldType string, fieldValue interface{}) (interface{}, error) // See Core.ConvertValueForLocal
 	CheckLocalTypeForField(ctx context.Context, fieldType string, fieldValue interface{}) (string, error)    // See Core.CheckLocalTypeForField
@@ -247,7 +247,7 @@ type Core struct {
 	db            DB              // DB interface object.
 	ctx           context.Context // Context for chaining operation only. Do not set a default value in Core initialization.
 	group         string          // Configuration group name.
-	schema        string          // Custom schema for this object.
+	database      string          // Custom database for this object.
 	debug         *gtype.Bool     // Enable debug mode for the database, which can be changed in runtime.
 	cache         *gcache.Cache   // Cache manager, SQL result cache only.
 	links         *gmap.StrAnyMap // links caches all created links by node.
@@ -260,6 +260,16 @@ type dynamicConfig struct {
 	MaxIdleConnCount int
 	MaxOpenConnCount int
 	MaxConnLifeTime  time.Duration
+}
+
+var autoFilledFiledNames = &struct {
+	createdFiledNames []string // Default filed names of table for automatic-filled created datetime.
+	updatedFiledNames []string // Default filed names of table for automatic-filled updated datetime.
+	deletedFiledNames []string // Default filed names of table for automatic-filled deleted datetime.
+}{
+	createdFiledNames: []string{"created_at", "create_at"},
+	updatedFiledNames: []string{"updated_at", "update_at"},
+	deletedFiledNames: []string{"deleted_at", "delete_at"},
 }
 
 // DoCommitInput is the input parameters for function DoCommit.
@@ -309,7 +319,7 @@ type Sql struct {
 	Start         int64         // Start execution timestamp in milliseconds.
 	End           int64         // End execution timestamp in milliseconds.
 	Group         string        // Group is the group name of the configuration that the sql is executed from.
-	Schema        string        // Schema is the schema name of the configuration that the sql is executed from.
+	Database      string        // Database is the database name of the configuration that the sql is executed from.
 	IsTransaction bool          // IsTransaction marks whether this sql is executed in transaction.
 	RowsAffected  int64         // RowsAffected marks retrieved or affected number with current sql statement.
 }
@@ -660,8 +670,8 @@ func (c *Core) getSqlDb(master bool, schema ...string) (sqlDb *sql.DB, err error
 	if node.Charset == "" {
 		node.Charset = defaultCharset
 	}
-	// Changes the schema.
-	nodeSchema := gutil.GetOrDefaultStr(c.schema, schema...)
+	// Changes the database.
+	nodeSchema := gutil.GetOrDefaultStr(c.database, schema...)
 	if nodeSchema != "" {
 		node.Name = nodeSchema
 	}

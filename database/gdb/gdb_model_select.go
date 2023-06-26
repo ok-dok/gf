@@ -759,7 +759,7 @@ func (m *Model) formatCondition(
 			WhereHolder: havingHolder,
 			OmitNil:     m.option&optionOmitNilWhere > 0,
 			OmitEmpty:   m.option&optionOmitEmptyWhere > 0,
-			Schema:      m.schema,
+			Database:    m.database,
 			Table:       m.tables,
 		})
 		if len(havingStr) > 0 {

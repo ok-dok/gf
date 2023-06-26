@@ -126,9 +126,9 @@ func (c *Core) Close(ctx context.Context) (err error) {
 
 // Master creates and returns a connection from master node if master-slave configured.
 // It returns the default connection if master-slave not configured.
-func (c *Core) Master(schema ...string) (*sql.DB, error) {
+func (c *Core) Master(database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.schema, schema...)
+		usedSchema   = gutil.GetOrDefaultStr(c.database, database...)
 		charL, charR = c.db.GetChars()
 	)
 	return c.getSqlDb(true, gstr.Trim(usedSchema, charL+charR))
@@ -136,9 +136,9 @@ func (c *Core) Master(schema ...string) (*sql.DB, error) {
 
 // Slave creates and returns a connection from slave node if master-slave configured.
 // It returns the default connection if master-slave not configured.
-func (c *Core) Slave(schema ...string) (*sql.DB, error) {
+func (c *Core) Slave(database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.schema, schema...)
+		usedSchema   = gutil.GetOrDefaultStr(c.database, database...)
 		charL, charR = c.db.GetChars()
 	)
 	return c.getSqlDb(false, gstr.Trim(usedSchema, charL+charR))
@@ -561,7 +561,7 @@ func (c *Core) formatOnDuplicate(columns []string, option DoInsertOption) string
 	} else {
 		for _, column := range columns {
 			// If it's SAVE operation, do not automatically update the creating time.
-			if c.isSoftCreatedFieldName(column) {
+			if c.IsSoftCreatedFieldName(column) {
 				continue
 			}
 			if len(onDuplicateStr) > 0 {
@@ -743,7 +743,7 @@ func (c *Core) writeSqlToLogger(ctx context.Context, sql *Sql) {
 	}
 	s := fmt.Sprintf(
 		"[%3d ms] [%s] [%s] [rows:%-3d] %s%s",
-		sql.End-sql.Start, sql.Group, sql.Schema, sql.RowsAffected, transactionIdStr, sql.Format,
+		sql.End-sql.Start, sql.Group, sql.Database, sql.RowsAffected, transactionIdStr, sql.Format,
 	)
 	if sql.Error != nil {
 		s += "\nError: " + sql.Error.Error()
@@ -778,8 +778,8 @@ func (c *Core) HasTable(name string) (bool, error) {
 	return result.Bool(), nil
 }
 
-// isSoftCreatedFieldName checks and returns whether given filed name is an automatic-filled created time.
-func (c *Core) isSoftCreatedFieldName(fieldName string) bool {
+// IsSoftCreatedFieldName checks and returns whether given filed name is an automatic-filled created time.
+func (c *Core) IsSoftCreatedFieldName(fieldName string) bool {
 	if fieldName == "" {
 		return false
 	}
@@ -787,12 +787,24 @@ func (c *Core) isSoftCreatedFieldName(fieldName string) bool {
 		if utils.EqualFoldWithoutChars(fieldName, config.CreatedAt) {
 			return true
 		}
-		return gstr.InArray(append([]string{config.CreatedAt}, createdFiledNames...), fieldName)
+		return gstr.InArray(append([]string{config.CreatedAt}, c.GetCreatedFiledNames()...), fieldName)
 	}
-	for _, v := range createdFiledNames {
+	for _, v := range c.GetCreatedFiledNames() {
 		if utils.EqualFoldWithoutChars(fieldName, v) {
 			return true
 		}
 	}
 	return false
+}
+
+func (c *Core) GetCreatedFiledNames() []string {
+	return autoFilledFiledNames.createdFiledNames
+}
+
+func (c *Core) GetUpdatedFiledNames() []string {
+	return autoFilledFiledNames.updatedFiledNames
+}
+
+func (c *Core) GetDeletedFiledNames() []string {
+	return autoFilledFiledNames.deletedFiledNames
 }

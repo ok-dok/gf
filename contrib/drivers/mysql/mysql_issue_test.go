@@ -528,7 +528,7 @@ func Test_Issue2338(t *testing.T) {
 	gtest.C(t, func(t *gtest.T) {
 		table1 := "demo_" + guid.S()
 		table2 := "demo_" + guid.S()
-		if _, err := db.Schema(TestSchema1).Exec(ctx, fmt.Sprintf(`
+		if _, err := db.Database(TestDatabase1).Exec(ctx, fmt.Sprintf(`
 CREATE TABLE %s (
     id        int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'User ID',
     nickname  varchar(45) DEFAULT NULL COMMENT 'User Nickname',
@@ -540,7 +540,7 @@ CREATE TABLE %s (
 		)); err != nil {
 			t.AssertNil(err)
 		}
-		if _, err := db.Schema(TestSchema2).Exec(ctx, fmt.Sprintf(`
+		if _, err := db.Database(TestDatabase2).Exec(ctx, fmt.Sprintf(`
 CREATE TABLE %s (
     id        int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'User ID',
     nickname  varchar(45) DEFAULT NULL COMMENT 'User Nickname',
@@ -552,24 +552,24 @@ CREATE TABLE %s (
 		)); err != nil {
 			t.AssertNil(err)
 		}
-		defer dropTableWithDb(db.Schema(TestSchema1), table1)
-		defer dropTableWithDb(db.Schema(TestSchema2), table2)
+		defer dropTableWithDb(db.Database(TestDatabase1), table1)
+		defer dropTableWithDb(db.Database(TestDatabase2), table2)
 
 		var err error
-		_, err = db.Schema(TestSchema1).Model(table1).Insert(g.Map{
+		_, err = db.Database(TestDatabase1).Model(table1).Insert(g.Map{
 			"id":       1,
 			"nickname": "name_1",
 		})
 		t.AssertNil(err)
 
-		_, err = db.Schema(TestSchema2).Model(table2).Insert(g.Map{
+		_, err = db.Database(TestDatabase2).Model(table2).Insert(g.Map{
 			"id":       1,
 			"nickname": "name_2",
 		})
 		t.AssertNil(err)
 
-		tableName1 := fmt.Sprintf(`%s.%s`, TestSchema1, table1)
-		tableName2 := fmt.Sprintf(`%s.%s`, TestSchema2, table2)
+		tableName1 := fmt.Sprintf(`%s.%s`, TestDatabase1, table1)
+		tableName2 := fmt.Sprintf(`%s.%s`, TestDatabase2, table2)
 		all, err := db.Model(tableName1).As(`a`).
 			LeftJoin(tableName2+" b", `a.id=b.id`).
 			Fields(`a.id`, `b.nickname`).All()
@@ -581,7 +581,7 @@ CREATE TABLE %s (
 	gtest.C(t, func(t *gtest.T) {
 		table1 := "demo_" + guid.S()
 		table2 := "demo_" + guid.S()
-		if _, err := db.Schema(TestSchema1).Exec(ctx, fmt.Sprintf(`
+		if _, err := db.Database(TestDatabase1).Exec(ctx, fmt.Sprintf(`
 CREATE TABLE %s (
     id        int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'User ID',
     nickname  varchar(45) DEFAULT NULL COMMENT 'User Nickname',
@@ -594,7 +594,7 @@ CREATE TABLE %s (
 		)); err != nil {
 			t.AssertNil(err)
 		}
-		if _, err := db.Schema(TestSchema2).Exec(ctx, fmt.Sprintf(`
+		if _, err := db.Database(TestDatabase2).Exec(ctx, fmt.Sprintf(`
 CREATE TABLE %s (
     id        int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'User ID',
     nickname  varchar(45) DEFAULT NULL COMMENT 'User Nickname',
@@ -607,24 +607,24 @@ CREATE TABLE %s (
 		)); err != nil {
 			t.AssertNil(err)
 		}
-		defer dropTableWithDb(db.Schema(TestSchema1), table1)
-		defer dropTableWithDb(db.Schema(TestSchema2), table2)
+		defer dropTableWithDb(db.Database(TestDatabase1), table1)
+		defer dropTableWithDb(db.Database(TestDatabase2), table2)
 
 		var err error
-		_, err = db.Schema(TestSchema1).Model(table1).Insert(g.Map{
+		_, err = db.Database(TestDatabase1).Model(table1).Insert(g.Map{
 			"id":       1,
 			"nickname": "name_1",
 		})
 		t.AssertNil(err)
 
-		_, err = db.Schema(TestSchema2).Model(table2).Insert(g.Map{
+		_, err = db.Database(TestDatabase2).Model(table2).Insert(g.Map{
 			"id":       1,
 			"nickname": "name_2",
 		})
 		t.AssertNil(err)
 
-		tableName1 := fmt.Sprintf(`%s.%s`, TestSchema1, table1)
-		tableName2 := fmt.Sprintf(`%s.%s`, TestSchema2, table2)
+		tableName1 := fmt.Sprintf(`%s.%s`, TestDatabase1, table1)
+		tableName2 := fmt.Sprintf(`%s.%s`, TestDatabase2, table2)
 		all, err := db.Model(tableName1).As(`a`).
 			LeftJoin(tableName2+" b", `a.id=b.id`).
 			Fields(`a.id`, `b.nickname`).All()

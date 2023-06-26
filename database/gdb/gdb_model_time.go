@@ -16,12 +16,6 @@ import (
 	"github.com/gogf/gf/v2/util/gutil"
 )
 
-var (
-	createdFiledNames = []string{"created_at", "create_at"} // Default filed names of table for automatic-filled created datetime.
-	updatedFiledNames = []string{"updated_at", "update_at"} // Default filed names of table for automatic-filled updated datetime.
-	deletedFiledNames = []string{"deleted_at", "delete_at"} // Default filed names of table for automatic-filled deleted datetime.
-)
-
 // Unscoped disables the auto-update time feature for insert, update and delete options.
 func (m *Model) Unscoped() *Model {
 	model := m.getModel()
@@ -47,7 +41,7 @@ func (m *Model) getSoftFieldNameCreated(schema string, table string) string {
 	if config.CreatedAt != "" {
 		return m.getSoftFieldName(schema, tableName, []string{config.CreatedAt})
 	}
-	return m.getSoftFieldName(schema, tableName, createdFiledNames)
+	return m.getSoftFieldName(schema, tableName, m.db.GetCore().GetCreatedFiledNames())
 }
 
 // getSoftFieldNameUpdate checks and returns the field name for record updating time.
@@ -68,7 +62,7 @@ func (m *Model) getSoftFieldNameUpdated(schema string, table string) (field stri
 	if config.UpdatedAt != "" {
 		return m.getSoftFieldName(schema, tableName, []string{config.UpdatedAt})
 	}
-	return m.getSoftFieldName(schema, tableName, updatedFiledNames)
+	return m.getSoftFieldName(schema, tableName, m.db.GetCore().GetUpdatedFiledNames())
 }
 
 // getSoftFieldNameDelete checks and returns the field name for record deleting time.
@@ -89,7 +83,7 @@ func (m *Model) getSoftFieldNameDeleted(schema string, table string) (field stri
 	if config.DeletedAt != "" {
 		return m.getSoftFieldName(schema, tableName, []string{config.DeletedAt})
 	}
-	return m.getSoftFieldName(schema, tableName, deletedFiledNames)
+	return m.getSoftFieldName(schema, tableName, m.db.GetCore().GetDeletedFiledNames())
 }
 
 // getSoftFieldName retrieves and returns the field name of the table for possible key.

@@ -561,7 +561,7 @@ func (c *Core) formatOnDuplicate(columns []string, option DoInsertOption) string
 	} else {
 		for _, column := range columns {
 			// If it's SAVE operation, do not automatically update the creating time.
-			if c.isSoftCreatedFieldName(column) {
+			if c.IsSoftCreatedFieldName(column) {
 				continue
 			}
 			if len(onDuplicateStr) > 0 {
@@ -778,8 +778,8 @@ func (c *Core) HasTable(name string) (bool, error) {
 	return result.Bool(), nil
 }
 
-// isSoftCreatedFieldName checks and returns whether given filed name is an automatic-filled created time.
-func (c *Core) isSoftCreatedFieldName(fieldName string) bool {
+// IsSoftCreatedFieldName checks and returns whether given filed name is an automatic-filled created time.
+func (c *Core) IsSoftCreatedFieldName(fieldName string) bool {
 	if fieldName == "" {
 		return false
 	}
@@ -787,12 +787,24 @@ func (c *Core) isSoftCreatedFieldName(fieldName string) bool {
 		if utils.EqualFoldWithoutChars(fieldName, config.CreatedAt) {
 			return true
 		}
-		return gstr.InArray(append([]string{config.CreatedAt}, createdFiledNames...), fieldName)
+		return gstr.InArray(append([]string{config.CreatedAt}, c.GetCreatedFiledNames()...), fieldName)
 	}
-	for _, v := range createdFiledNames {
+	for _, v := range c.GetCreatedFiledNames() {
 		if utils.EqualFoldWithoutChars(fieldName, v) {
 			return true
 		}
 	}
 	return false
+}
+
+func (c *Core) GetCreatedFiledNames() []string {
+	return autoFilledFiledNames.createdFiledNames
+}
+
+func (c *Core) GetUpdatedFiledNames() []string {
+	return autoFilledFiledNames.updatedFiledNames
+}
+
+func (c *Core) GetDeletedFiledNames() []string {
+	return autoFilledFiledNames.deletedFiledNames
 }

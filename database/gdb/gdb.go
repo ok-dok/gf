@@ -262,6 +262,16 @@ type dynamicConfig struct {
 	MaxConnLifeTime  time.Duration
 }
 
+var autoFilledFiledNames = &struct {
+	createdFiledNames []string // Default filed names of table for automatic-filled created datetime.
+	updatedFiledNames []string // Default filed names of table for automatic-filled updated datetime.
+	deletedFiledNames []string // Default filed names of table for automatic-filled deleted datetime.
+}{
+	createdFiledNames: []string{"created_at", "create_at"},
+	updatedFiledNames: []string{"updated_at", "update_at"},
+	deletedFiledNames: []string{"deleted_at", "delete_at"},
+}
+
 // DoCommitInput is the input parameters for function DoCommit.
 type DoCommitInput struct {
 	Db            *sql.DB

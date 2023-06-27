@@ -152,6 +152,7 @@ type DB interface {
 	SetDebug(debug bool)                // See Core.SetDebug.
 	GetDebug() bool                     // See Core.GetDebug.
 	GetDatabase() string                // See Core.GetDatabase.
+	GetSchema() string                  // See Core.GetSchema.
 	GetPrefix() string                  // See Core.GetPrefix.
 	GetGroup() string                   // See Core.GetGroup.
 	SetDryRun(enabled bool)             // See Core.SetDryRun.
@@ -167,14 +168,16 @@ type DB interface {
 	// Utility methods.
 	// ===========================================================================
 
-	GetCtx() context.Context                                                                                 // See Core.GetCtx.
-	GetCore() *Core                                                                                          // See Core.GetCore
-	GetChars() (charLeft string, charRight string)                                                           // See Core.GetChars.
-	Tables(ctx context.Context, database ...string) (tables []string, err error)                             // See Core.Tables. The driver must implement this function.
-	TableFields(ctx context.Context, table string, database ...string) (map[string]*TableField, error)       // See Core.TableFields. The driver must implement this function.
-	ConvertDataForRecord(ctx context.Context, data interface{}) (map[string]interface{}, error)              // See Core.ConvertDataForRecord
-	ConvertValueForLocal(ctx context.Context, fieldType string, fieldValue interface{}) (interface{}, error) // See Core.ConvertValueForLocal
-	CheckLocalTypeForField(ctx context.Context, fieldType string, fieldValue interface{}) (string, error)    // See Core.CheckLocalTypeForField
+	GetCtx() context.Context                                                                                                  // See Core.GetCtx.
+	GetCore() *Core                                                                                                           // See Core.GetCore
+	GetQuoteChars() (charLeft string, charRight string)                                                                       // See Core.GetQuoteChars.
+	TablesInSchema(ctx context.Context, schema string, database ...string) (tables []string, err error)                       // See Core.Tables. The driver must implement this function.
+	Tables(ctx context.Context, database ...string) (tables []string, err error)                                              // See Core.Tables. The driver must implement this function.
+	TableFieldsInSchema(ctx context.Context, table string, schema string, database ...string) (map[string]*TableField, error) // See Core.TableFields. The driver must implement this function.
+	TableFields(ctx context.Context, table string, database ...string) (map[string]*TableField, error)                        // See Core.TableFields. The driver must implement this function.
+	ConvertDataForRecord(ctx context.Context, data interface{}) (map[string]interface{}, error)                               // See Core.ConvertDataForRecord
+	ConvertValueForLocal(ctx context.Context, fieldType string, fieldValue interface{}) (interface{}, error)                  // See Core.ConvertValueForLocal
+	CheckLocalTypeForField(ctx context.Context, fieldType string, fieldValue interface{}) (string, error)                     // See Core.CheckLocalTypeForField
 }
 
 // TX defines the interfaces for ORM transaction operations.
@@ -367,28 +370,29 @@ type CatchSQLManager struct {
 type queryType int
 
 const (
-	defaultModelSafe                      = false
-	defaultCharset                        = `utf8`
-	defaultProtocol                       = `tcp`
-	queryTypeNormal           queryType   = 0
-	queryTypeCount            queryType   = 1
-	queryTypeValue            queryType   = 2
-	unionTypeNormal                       = 0
-	unionTypeAll                          = 1
-	defaultMaxIdleConnCount               = 10               // Max idle connection count in pool.
-	defaultMaxOpenConnCount               = 0                // Max open connection count in pool. Default is no limit.
-	defaultMaxConnLifeTime                = 30 * time.Second // Max lifetime for per connection in pool in seconds.
-	ctxTimeoutTypeExec                    = 0
-	ctxTimeoutTypeQuery                   = 1
-	ctxTimeoutTypePrepare                 = 2
-	cachePrefixTableFields                = `TableFields:`
-	cachePrefixSelectCache                = `SelectCache:`
-	commandEnvKeyForDryRun                = "gf.gdb.dryrun"
-	modelForDaoSuffix                     = `ForDao`
-	dbRoleSlave                           = `slave`
-	ctxKeyForDB               gctx.StrKey = `CtxKeyForDB`
-	ctxKeyCatchSQL            gctx.StrKey = `CtxKeyCatchSQL`
-	ctxKeyInternalProducedSQL gctx.StrKey = `CtxKeyInternalProducedSQL`
+	defaultModelSafe                           = false
+	defaultCharset                             = `utf8`
+	defaultProtocol                            = `tcp`
+	queryTypeNormal                queryType   = 0
+	queryTypeCount                 queryType   = 1
+	queryTypeValue                 queryType   = 2
+	unionTypeNormal                            = 0
+	unionTypeAll                               = 1
+	defaultMaxIdleConnCount                    = 10               // Max idle connection count in pool.
+	defaultMaxOpenConnCount                    = 0                // Max open connection count in pool. Default is no limit.
+	defaultMaxConnLifeTime                     = 30 * time.Second // Max lifetime for per connection in pool in seconds.
+	ctxTimeoutTypeExec                         = 0
+	ctxTimeoutTypeQuery                        = 1
+	ctxTimeoutTypePrepare                      = 2
+	cachePrefixTableFields                     = `TableFields:`
+	cachePrefixTableFieldsInSchema             = `TableFieldsInSchema:`
+	cachePrefixSelectCache                     = `SelectCache:`
+	commandEnvKeyForDryRun                     = "gf.gdb.dryrun"
+	modelForDaoSuffix                          = `ForDao`
+	dbRoleSlave                                = `slave`
+	ctxKeyForDB                    gctx.StrKey = `CtxKeyForDB`
+	ctxKeyCatchSQL                 gctx.StrKey = `CtxKeyCatchSQL`
+	ctxKeyInternalProducedSQL      gctx.StrKey = `CtxKeyInternalProducedSQL`
 
 	// type:[username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
 	linkPattern = `(\w+):([\w\-]*):(.*?)@(\w+?)\((.+?)\)/{0,1}([^\?]*)\?{0,1}(.*)`

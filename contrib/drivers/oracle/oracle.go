@@ -108,8 +108,8 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-// GetChars returns the security char for this type of database.
-func (d *Driver) GetChars() (charLeft string, charRight string) {
+// GetQuoteChars returns the security char for this type of database.
+func (d *Driver) GetQuoteChars() (charLeft string, charRight string) {
 	return quoteChar, quoteChar
 }
 
@@ -298,7 +298,7 @@ func (d *Driver) DoInsert(
 	}
 	var (
 		batchResult    = new(gdb.SqlResult)
-		charL, charR   = d.GetChars()
+		charL, charR   = d.GetQuoteChars()
 		keyStr         = charL + strings.Join(keys, charL+","+charR) + charR
 		valueHolderStr = strings.Join(valueHolder, ",")
 	)

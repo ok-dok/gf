@@ -96,7 +96,7 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-func (d *Driver) GetChars() (charLeft string, charRight string) {
+func (d *Driver) GetQuoteChars() (charLeft string, charRight string) {
 	return quoteChar, quoteChar
 }
 
@@ -203,7 +203,7 @@ func (d *Driver) DoInsert(
 		}
 		var (
 			keysSort     []string
-			charL, charR = d.GetChars()
+			charL, charR = d.GetQuoteChars()
 		)
 		// Column names need to be aligned in the syntax
 		for k := range list[0] {

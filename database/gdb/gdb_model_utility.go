@@ -169,7 +169,7 @@ func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEm
 		// Keep specified fields.
 		var (
 			set          = gset.NewStrSetFrom(gstr.SplitAndTrim(m.fields, ","))
-			charL, charR = m.db.GetChars()
+			charL, charR = m.db.GetQuoteChars()
 			chars        = charL + charR
 		)
 		set.Walk(func(item string) string {

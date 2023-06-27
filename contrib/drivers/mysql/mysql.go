@@ -101,8 +101,8 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-// GetChars returns the security char for this type of database.
-func (d *Driver) GetChars() (charLeft string, charRight string) {
+// GetQuoteChars returns the security char for this type of database.
+func (d *Driver) GetQuoteChars() (charLeft string, charRight string) {
 	return quoteChar, quoteChar
 }
 

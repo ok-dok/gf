@@ -91,8 +91,8 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 			)
 		}
 
-		if config.Namespace != "" {
-			source = fmt.Sprintf("%s search_path=%s", source, config.Namespace)
+		if config.Schema != "" {
+			source = fmt.Sprintf("%s search_path=%s", source, config.Schema)
 		}
 
 		if config.Timezone != "" {
@@ -120,8 +120,8 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-// GetChars returns the security char for this type of database.
-func (d *Driver) GetChars() (charLeft string, charRight string) {
+// GetQuoteChars returns the security char for this type of database.
+func (d *Driver) GetQuoteChars() (charLeft string, charRight string) {
 	return quoteChar, quoteChar
 }
 
@@ -233,7 +233,7 @@ func (d *Driver) DoFilter(ctx context.Context, link gdb.Link, sql string, args [
 func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
 	var (
 		result     gdb.Result
-		usedSchema = gutil.GetOrDefaultStr(d.GetConfig().Namespace, schema...)
+		usedSchema = gutil.GetOrDefaultStr(d.GetConfig().Schema, schema...)
 	)
 	if usedSchema == "" {
 		usedSchema = defaultSchema
@@ -279,7 +279,7 @@ func (d *Driver) TableFields(ctx context.Context, table string, schema ...string
 	var (
 		result       gdb.Result
 		link         gdb.Link
-		usedSchema   = gutil.GetOrDefaultStr(d.GetConfig().Namespace, schema...)
+		usedSchema   = gutil.GetOrDefaultStr(d.GetConfig().Schema, schema...)
 		structureSql = fmt.Sprintf(`
 SELECT a.attname AS field, t.typname AS type,a.attnotnull as null,
     (case when d.contype is not null then 'pri' else '' end)  as key
@@ -520,7 +520,7 @@ func (d *Driver) insertOrUpdate(ctx context.Context, link gdb.Link, table string
 	}
 	// Prepare the batch result pointer.
 	var (
-		charL, charR = d.GetChars()
+		charL, charR = d.GetQuoteChars()
 		batchResult  = new(gdb.SqlResult)
 		keysStr      = charL + strings.Join(keys, charR+","+charL) + charR
 		operation    = gdb.GetInsertOperationByOption(option.InsertOption)

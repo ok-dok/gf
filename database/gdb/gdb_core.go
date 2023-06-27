@@ -128,20 +128,20 @@ func (c *Core) Close(ctx context.Context) (err error) {
 // It returns the default connection if master-slave not configured.
 func (c *Core) Master(database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.database, database...)
-		charL, charR = c.db.GetChars()
+		usedDatabase = gutil.GetOrDefaultStr(c.database, database...)
+		charL, charR = c.db.GetQuoteChars()
 	)
-	return c.getSqlDb(true, gstr.Trim(usedSchema, charL+charR))
+	return c.getSqlDb(true, gstr.Trim(usedDatabase, charL+charR))
 }
 
 // Slave creates and returns a connection from slave node if master-slave configured.
 // It returns the default connection if master-slave not configured.
 func (c *Core) Slave(database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.database, database...)
-		charL, charR = c.db.GetChars()
+		usedDatabase = gutil.GetOrDefaultStr(c.database, database...)
+		charL, charR = c.db.GetQuoteChars()
 	)
-	return c.getSqlDb(false, gstr.Trim(usedSchema, charL+charR))
+	return c.getSqlDb(false, gstr.Trim(usedDatabase, charL+charR))
 }
 
 // GetAll queries and returns data records from database.
@@ -480,7 +480,7 @@ func (c *Core) DoInsert(ctx context.Context, link Link, table string, list List,
 	}
 	// Prepare the batch result pointer.
 	var (
-		charL, charR = c.db.GetChars()
+		charL, charR = c.db.GetQuoteChars()
 		batchResult  = new(SqlResult)
 		keysStr      = charL + strings.Join(keys, charR+","+charL) + charR
 		operation    = GetInsertOperationByOption(option.InsertOption)

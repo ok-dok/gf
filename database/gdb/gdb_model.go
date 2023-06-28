@@ -21,6 +21,7 @@ type Model struct {
 	tx            TX            // Underlying TX interface.
 	rawSql        string        // rawSql is the raw SQL string which marks a raw SQL based Model not a table based Model.
 	database      string        // Custom database.
+	schema        string        // Custom schema.
 	linkType      int           // Mark for operation on master or slave.
 	tablesInit    string        // Table names when model initialization.
 	tables        string        // Operation table names, which can be more than one table names and aliases, like: "user", "user u", "user u, user_detail ud".
@@ -70,7 +71,7 @@ const (
 	whereHolderTypeIn        = "In"
 )
 
-// Model creates and returns a new ORM model from given database.
+// Model creates and returns a new ORM model from given database and schema.
 // The parameter `tableNameQueryOrStruct` can be more than one table names, and also alias name, like:
 //  1. Model names:
 //     db.Model("user")
@@ -126,6 +127,7 @@ func (c *Core) Model(tableNameQueryOrStruct ...interface{}) *Model {
 	m := &Model{
 		db:         c.db,
 		database:   c.database,
+		schema:     c.schema,
 		tablesInit: tableStr,
 		tables:     tableStr,
 		fields:     defaultFields,
@@ -249,6 +251,13 @@ func (m *Model) TX(tx TX) *Model {
 func (m *Model) Database(database string) *Model {
 	model := m.getModel()
 	model.database = database
+	return model
+}
+
+// Schema sets the database's default schema for current operation.
+func (m *Model) Schema(schema string) *Model {
+	model := m.getModel()
+	model.schema = schema
 	return model
 }
 

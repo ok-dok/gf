@@ -11,6 +11,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/gogf/gf/v2/text/gstr"
 	"time"
 
 	"github.com/gogf/gf/v2/container/garray"
@@ -49,7 +50,7 @@ type DB interface {
 
 	// Database creates and returns a database.
 	// Also see Core.Database.
-	Database(database string) *Database
+	Database(database string, schema ...string) *Database
 
 	// With creates and returns an ORM model based on metadata of given object.
 	// Also see Core.With.
@@ -127,8 +128,10 @@ type DB interface {
 	// Master/Slave specification support.
 	// ===========================================================================
 
-	Master(database ...string) (*sql.DB, error) // See Core.Master.
-	Slave(database ...string) (*sql.DB, error)  // See Core.Slave.
+	Master(database ...string) (*sql.DB, error)                          // See Core.Master.
+	MasterWithSchema(schema string, database ...string) (*sql.DB, error) // See Core.MasterWithSchema.
+	Slave(database ...string) (*sql.DB, error)                           // See Core.Slave.
+	SlaveWithSchema(schema string, database ...string) (*sql.DB, error)  // See Core.SlaveWithSchema.
 
 	// ===========================================================================
 	// Ping-Pong.
@@ -250,7 +253,8 @@ type Core struct {
 	db            DB              // DB interface object.
 	ctx           context.Context // Context for chaining operation only. Do not set a default value in Core initialization.
 	group         string          // Configuration group name.
-	database      string          // Custom database for this object.
+	database      string          // Custom database name for this object.
+	schema        string          // Custom schema name for this object.
 	debug         *gtype.Bool     // Enable debug mode for the database, which can be changed in runtime.
 	cache         *gcache.Cache   // Cache manager, SQL result cache only.
 	links         *gmap.StrAnyMap // links caches all created links by node.
@@ -652,7 +656,7 @@ func getConfigNodeByWeight(cg ConfigGroup) *ConfigNode {
 // getSqlDb retrieves and returns an underlying database connection object.
 // The parameter `master` specifies whether retrieves master node connection if
 // master-slave nodes are configured.
-func (c *Core) getSqlDb(master bool, schema ...string) (sqlDb *sql.DB, err error) {
+func (c *Core) getSqlDb(master bool, schema string, database ...string) (sqlDb *sql.DB, err error) {
 	var (
 		node *ConfigNode
 		ctx  = c.db.GetCtx()
@@ -674,10 +678,16 @@ func (c *Core) getSqlDb(master bool, schema ...string) (sqlDb *sql.DB, err error
 	if node.Charset == "" {
 		node.Charset = defaultCharset
 	}
+	charLeft, charRight := c.GetQuoteChars()
 	// Changes the database.
-	nodeSchema := gutil.GetOrDefaultStr(c.database, schema...)
+	nodeDatabase := gutil.GetOrDefaultStr(c.GetDatabase(), database...)
+	if nodeDatabase != "" {
+		node.Name = gstr.Trim(nodeDatabase, charLeft+charRight)
+	}
+	// Changes the schema
+	nodeSchema := gutil.GetOrDefaultStr(c.GetSchema(), schema)
 	if nodeSchema != "" {
-		node.Name = nodeSchema
+		node.Schema = gstr.Trim(nodeSchema, charLeft+charRight)
 	}
 	// Update the configuration object in internal data.
 	internalData := c.GetInternalCtxDataFromCtx(ctx)

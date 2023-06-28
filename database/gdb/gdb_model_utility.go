@@ -30,12 +30,20 @@ func (m *Model) QuoteWord(s string) string {
 // database.
 //
 // Also see DriverMysql.TableFields.
-func (m *Model) TableFields(tableStr string, schema ...string) (fields map[string]*TableField, err error) {
+func (m *Model) TableFields(tableStr string, database ...string) (fields map[string]*TableField, err error) {
+	return m.TableFieldsInSchema(tableStr, m.schema, database...)
+}
+
+// TableFieldsInSchema retrieves and returns the fields' information of specified table of current
+// database.
+//
+// Also see DriverMysql.TableFields.
+func (m *Model) TableFieldsInSchema(tableStr string, schema string, database ...string) (fields map[string]*TableField, err error) {
 	var (
-		table      = m.db.GetCore().guessPrimaryTableName(tableStr)
-		usedSchema = gutil.GetOrDefaultStr(m.database, schema...)
+		table        = m.db.GetCore().guessPrimaryTableName(tableStr)
+		usedDatabase = gutil.GetOrDefaultStr(m.database, database...)
 	)
-	return m.db.TableFields(m.GetCtx(), table, usedSchema)
+	return m.db.TableFieldsInSchema(m.GetCtx(), table, schema, usedDatabase)
 }
 
 // getModel creates and returns a cloned model of current model if `safe` is true, or else it returns
@@ -206,13 +214,13 @@ func (m *Model) getLink(master bool) Link {
 	}
 	switch linkType {
 	case linkTypeMaster:
-		link, err := m.db.GetCore().MasterLink(m.database)
+		link, err := m.db.GetCore().MasterLinkWithSchema(m.schema, m.database)
 		if err != nil {
 			panic(err)
 		}
 		return link
 	case linkTypeSlave:
-		link, err := m.db.GetCore().SlaveLink(m.database)
+		link, err := m.db.GetCore().SlaveLinkWithSchema(m.schema, m.database)
 		if err != nil {
 			panic(err)
 		}

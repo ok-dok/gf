@@ -228,34 +228,32 @@ func (d *Driver) DoFilter(ctx context.Context, link gdb.Link, sql string, args [
 	return newSql, args, nil
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database's default or public schema(if the db support schema).
 // It's mainly used in cli tool chain for automatically generating the models.
-func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (d *Driver) Tables(ctx context.Context, database ...string) (tables []string, err error) {
+	return d.TablesInSchema(ctx, d.GetSchema(), database...)
+}
+
+// TablesInSchema retrieves and returns the tables of given database's schema.
+// It's mainly used in cli tool chain for automatically generating the models.
+func (d *Driver) TablesInSchema(ctx context.Context, schema string, database ...string) (tables []string, err error) {
 	var (
-		result     gdb.Result
-		usedSchema = gutil.GetOrDefaultStr(d.GetConfig().Schema, schema...)
+		result gdb.Result
+		//usedDatabase = gutil.GetOrDefaultStr(d.GetConfig().Name, database...)
+		usedSchema = gutil.GetOrDefaultStr(d.GetSchema(), schema)
 	)
 	if usedSchema == "" {
 		usedSchema = defaultSchema
 	}
-	// DO NOT use `usedSchema` as parameter for function `SlaveLink`.
-	link, err := d.SlaveLink(schema...)
+	// DO NOT use `usedDatabase` as parameter for function `SlaveLink`.
+	link, err := d.SlaveLink(database...)
 	if err != nil {
 		return nil, err
 	}
 	var query = fmt.Sprintf(`
-SELECT
-	c.relname
-FROM
-	pg_class c
-INNER JOIN pg_namespace n ON
-	c.relnamespace = n.oid
-WHERE
-	n.nspname = '%s'
-	AND c.relkind IN ('r', 'p')
-	AND c.relpartbound IS NULL
-ORDER BY
-	c.relname`,
+SELECT t.tablename
+FROM pg_tables t
+WHERE t.schemaname = '%s'`,
 		usedSchema,
 	)
 
@@ -272,15 +270,27 @@ ORDER BY
 	return
 }
 
-// TableFields retrieves and returns the fields' information of specified table of current schema.
+// TableFields retrieves and returns the fields' information of specified table of given database's schema.
 //
 // Also see DriverMysql.TableFields.
-func (d *Driver) TableFields(ctx context.Context, table string, schema ...string) (fields map[string]*gdb.TableField, err error) {
+func (d *Driver) TableFields(ctx context.Context, table string, database ...string) (fields map[string]*gdb.TableField, err error) {
+	return d.TableFieldsInSchema(ctx, table, d.GetSchema(), database...)
+}
+
+// TableFieldsInSchema retrieves and returns the fields' information of specified table of given database's schema.
+//
+// Also see DriverMysql.TableFields.
+func (d *Driver) TableFieldsInSchema(ctx context.Context, table string, schema string, database ...string) (fields map[string]*gdb.TableField, err error) {
 	var (
-		result       gdb.Result
-		link         gdb.Link
-		usedSchema   = gutil.GetOrDefaultStr(d.GetConfig().Schema, schema...)
-		structureSql = fmt.Sprintf(`
+		result gdb.Result
+		link   gdb.Link
+		//usedDatabase = gutil.GetOrDefaultStr(d.GetConfig().Name, database...)
+		usedSchema = gutil.GetOrDefaultStr(d.GetSchema(), schema)
+	)
+	if usedSchema == "" {
+		usedSchema = defaultSchema
+	}
+	structureSql := fmt.Sprintf(`
 SELECT a.attname AS field, t.typname AS type,a.attnotnull as null,
     (case when d.contype is not null then 'pri' else '' end)  as key
       ,ic.column_default as default_value,b.description as comment
@@ -295,11 +305,11 @@ FROM pg_attribute a
          left join information_schema.columns ic on ic.column_name = a.attname and ic.table_name = c.relname and ic.table_schema = n.nspname
 WHERE n.nspname = '%s' and c.relname = '%s' and a.attisdropped is false and a.attnum > 0
 ORDER BY a.attnum`,
-			usedSchema,
-			table,
-		)
+		usedSchema,
+		gstr.Trim(table, quoteChar),
 	)
-	if link, err = d.SlaveLink(usedSchema); err != nil {
+	// DO NOT use `usedDatabase` as parameter for function `SlaveLink`.
+	if link, err = d.SlaveLinkWithSchema(usedSchema, database...); err != nil {
 		return nil, err
 	}
 	structureSql, _ = gregex.ReplaceString(`[\n\r\s]+`, " ", gstr.Trim(structureSql))

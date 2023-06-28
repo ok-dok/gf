@@ -257,12 +257,16 @@ func (c *Core) GetPrefix() string {
 	return c.config.Prefix
 }
 
-// GetSchema is similar to GetDatabase by default.
+// GetSchema returns the database's schema name configured
 func (c *Core) GetSchema() string {
-	return c.GetDatabase()
+	schema := c.schema
+	if schema == "" {
+		schema = c.db.GetConfig().Schema
+	}
+	return schema
 }
 
-// GetDatabase returns the database configured.
+// GetDatabase returns the database name configured.
 func (c *Core) GetDatabase() string {
 	database := c.database
 	if database == "" {

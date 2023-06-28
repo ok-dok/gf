@@ -127,21 +127,33 @@ func (c *Core) Close(ctx context.Context) (err error) {
 // Master creates and returns a connection from master node if master-slave configured.
 // It returns the default connection if master-slave not configured.
 func (c *Core) Master(database ...string) (*sql.DB, error) {
+	return c.MasterWithSchema(c.GetSchema(), database...)
+}
+
+// MasterWithSchema creates and returns a connection from master node if master-slave configured.
+// MasterWithSchema acts like function Master with additional `schema` parameter specifying the schema for searching.
+// It returns the default connection if master-slave not configured.
+func (c *Core) MasterWithSchema(schema string, database ...string) (*sql.DB, error) {
 	var (
-		usedDatabase = gutil.GetOrDefaultStr(c.database, database...)
-		charL, charR = c.db.GetQuoteChars()
+		usedDatabase = gutil.GetOrDefaultStr(c.GetDatabase(), database...)
 	)
-	return c.getSqlDb(true, gstr.Trim(usedDatabase, charL+charR))
+	return c.getSqlDb(true, schema, usedDatabase)
 }
 
 // Slave creates and returns a connection from slave node if master-slave configured.
 // It returns the default connection if master-slave not configured.
 func (c *Core) Slave(database ...string) (*sql.DB, error) {
+	return c.SlaveWithSchema(c.GetSchema(), database...)
+}
+
+// SlaveWithSchema creates and returns a connection from slave node if master-slave configured.
+// SlaveWithSchema acts like function Slave with additional `schema` parameter specifying the schema for searching.
+// It returns the default connection if master-slave not configured.
+func (c *Core) SlaveWithSchema(schema string, database ...string) (*sql.DB, error) {
 	var (
-		usedDatabase = gutil.GetOrDefaultStr(c.database, database...)
-		charL, charR = c.db.GetQuoteChars()
+		usedDatabase = gutil.GetOrDefaultStr(c.GetDatabase(), database...)
 	)
-	return c.getSqlDb(false, gstr.Trim(usedDatabase, charL+charR))
+	return c.getSqlDb(false, schema, usedDatabase)
 }
 
 // GetAll queries and returns data records from database.

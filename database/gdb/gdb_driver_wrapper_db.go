@@ -134,7 +134,7 @@ func (d *DriverWrapperDB) TableFieldsInSchema(ctx context.Context, table string,
 	}
 	var (
 		cacheKey = fmt.Sprintf(
-			`%s%s@%s$%s#%s`,
+			`%s%s@%s?%s#%s`,
 			cachePrefixTableFieldsInSchema,
 			d.GetGroup(),
 			gutil.GetOrDefaultStr(d.GetDatabase(), database...),

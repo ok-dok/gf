@@ -294,7 +294,7 @@ func (d *Driver) DoInsert(
 	}
 	// Prepare the batch result pointer.
 	var (
-		charL, charR = d.Core.GetChars()
+		charL, charR = d.Core.GetQuoteChars()
 		keysStr      = charL + strings.Join(keys, charR+","+charL) + charR
 		holderStr    = strings.Join(valueHolder, ",")
 		tx           gdb.TX

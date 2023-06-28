@@ -12,7 +12,7 @@ type Database struct {
 }
 
 // Database creates and returns a database.
-func (c *Core) Database(database string) *Database {
+func (c *Core) Database(database string, schema ...string) *Database {
 	// Do not change the database of the original db,
 	// it here creates a new db and changes its database.
 	db, err := NewByGroup(c.GetGroup())
@@ -24,6 +24,9 @@ func (c *Core) Database(database string) *Database {
 	core.logger = c.logger
 	core.cache = c.cache
 	core.database = database
+	if schema != nil && len(schema) > 1 {
+		core.schema = schema[0]
+	}
 	return &Database{
 		DB: db,
 	}

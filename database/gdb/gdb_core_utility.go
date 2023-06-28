@@ -50,7 +50,14 @@ func (c *Core) GetLink(ctx context.Context, master bool, schema string) (Link, e
 // the database for the connection. It is defined for internal usage.
 // Also see Master.
 func (c *Core) MasterLink(database ...string) (Link, error) {
-	db, err := c.db.Master(database...)
+	return c.MasterLinkWithSchema(c.GetSchema(), database...)
+}
+
+// MasterLinkWithSchema acts like function MasterWithSchema but with additional `schema` and `database` parameter specifying
+// the database for the connection and the schema namespace for searching. It is defined for internal usage.
+// Also see Master.
+func (c *Core) MasterLinkWithSchema(schema string, database ...string) (Link, error) {
+	db, err := c.db.MasterWithSchema(schema, database...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +71,14 @@ func (c *Core) MasterLink(database ...string) (Link, error) {
 // the database for the connection. It is defined for internal usage.
 // Also see Slave.
 func (c *Core) SlaveLink(database ...string) (Link, error) {
-	db, err := c.db.Slave(database...)
+	return c.SlaveLinkWithSchema(c.GetSchema(), database...)
+}
+
+// SlaveLinkWithSchema acts like function SlaveWithSchema but with additional `schema` and `database` parameter specifying
+// the database for the connection and the schema namespace for searching. It is defined for internal usage.
+// Also see Slave.
+func (c *Core) SlaveLinkWithSchema(schema string, database ...string) (Link, error) {
+	db, err := c.db.SlaveWithSchema(schema, database...)
 	if err != nil {
 		return nil, err
 	}
@@ -212,11 +226,12 @@ func (c *Core) ClearCacheAll(ctx context.Context) (err error) {
 	return c.db.GetCache().Clear(ctx)
 }
 
-func (c *Core) makeSelectCacheKey(name, schema, table, sql string, args ...interface{}) string {
+func (c *Core) makeSelectCacheKey(name, database, schema, table, sql string, args ...interface{}) string {
 	if name == "" {
 		name = fmt.Sprintf(
-			`%s@%s#%s:%s`,
+			`%s@%s?%s#%s:%s`,
 			c.db.GetGroup(),
+			database,
 			schema,
 			table,
 			gmd5.MustEncryptString(sql+", @PARAMS:"+gconv.String(args)),

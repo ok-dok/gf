@@ -366,8 +366,7 @@ func (d *Driver) DoInsert(ctx context.Context, link gdb.Link, table string, list
 		if err == nil {
 			for _, field := range tableFields {
 				if field.Key == "pri" {
-					pkField := *field
-					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, pkField)
+					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, field)
 					break
 				}
 			}

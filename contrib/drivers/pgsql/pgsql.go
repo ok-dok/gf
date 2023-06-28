@@ -487,8 +487,7 @@ func (d *Driver) insertOrUpdate(ctx context.Context, link gdb.Link, table string
 		if tableFields, err = d.TableFields(ctx, table); err == nil {
 			for _, field := range tableFields {
 				if field.Key == "pri" {
-					pkField := *field
-					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, pkField)
+					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, field)
 					break
 				}
 			}

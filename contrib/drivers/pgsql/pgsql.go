@@ -292,7 +292,10 @@ func (d *Driver) TableFieldsInSchema(ctx context.Context, table string, schema s
 	}
 	structureSql := fmt.Sprintf(`
 SELECT a.attname AS field, t.typname AS type,a.attnotnull as null,
-    (case when d.contype is not null then 'pri' else '' end)  as key
+    (case
+		when d.contype = 'p' then 'pri'
+		when d.contype = 'f' then 'for'
+		else '' end)  as key
       ,ic.column_default as default_value,b.description as comment
       ,coalesce(character_maximum_length, numeric_precision, -1) as length
       ,numeric_scale as scale

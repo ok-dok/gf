@@ -384,6 +384,7 @@ type formatWhereHolderInput struct {
 	OmitNil   bool
 	OmitEmpty bool
 	Database  string
+	Schema    string
 	Table     string // Table is used for fields mapping and filtering internally.
 }
 
@@ -494,7 +495,7 @@ func formatWhereHolder(ctx context.Context, db DB, in formatWhereHolderInput) (n
 		}
 		// Mapping and filtering fields if `Table` is given.
 		if in.Table != "" {
-			data, _ = db.GetCore().mappingAndFilterData(ctx, in.Database, in.Table, data, true)
+			data, _ = db.GetCore().mappingAndFilterData(ctx, in.Database, in.Schema, in.Table, data, true)
 		}
 		// Put the struct attributes in sequence in Where statement.
 		var ormTagValue string

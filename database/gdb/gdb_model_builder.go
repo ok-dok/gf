@@ -66,6 +66,7 @@ func (b *WhereBuilder) Build() (conditionWhere string, conditionArgs []interface
 					OmitNil:     b.model.option&optionOmitNilWhere > 0,
 					OmitEmpty:   b.model.option&optionOmitEmptyWhere > 0,
 					Database:    b.model.database,
+					Schema:      b.model.schema,
 					Table:       tableForMappingAndFiltering,
 				})
 				if len(newWhere) > 0 {
@@ -85,6 +86,7 @@ func (b *WhereBuilder) Build() (conditionWhere string, conditionArgs []interface
 					OmitNil:     b.model.option&optionOmitNilWhere > 0,
 					OmitEmpty:   b.model.option&optionOmitEmptyWhere > 0,
 					Database:    b.model.database,
+					Schema:      b.model.schema,
 					Table:       tableForMappingAndFiltering,
 				})
 				if len(newWhere) > 0 {

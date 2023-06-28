@@ -125,7 +125,7 @@ func (m *Model) filterDataForInsertOrUpdate(data interface{}) (interface{}, erro
 func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEmpty bool) (Map, error) {
 	var err error
 	data, err = m.db.GetCore().mappingAndFilterData(
-		m.GetCtx(), m.database, m.tablesInit, data, m.filter,
+		m.GetCtx(), m.database, m.schema, m.tablesInit, data, m.filter,
 	)
 	if err != nil {
 		return nil, err

@@ -102,6 +102,7 @@ func (c *Core) Model(tableNameQueryOrStruct ...interface{}) *Model {
 				OmitNil:     false,
 				OmitEmpty:   false,
 				Database:    "",
+				Schema:      "",
 				Table:       "",
 			})
 		}

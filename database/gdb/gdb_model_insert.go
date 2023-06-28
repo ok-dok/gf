@@ -255,8 +255,8 @@ func (m *Model) doInsertWithOption(ctx context.Context, insertOption int) (resul
 	var (
 		list            List
 		now             = gtime.Now()
-		fieldNameCreate = m.getSoftFieldNameCreated("", m.tablesInit)
-		fieldNameUpdate = m.getSoftFieldNameUpdated("", m.tablesInit)
+		fieldNameCreate = m.getSoftFieldNameCreated(m.database, m.schema, m.tablesInit)
+		fieldNameUpdate = m.getSoftFieldNameUpdated(m.database, m.schema, m.tablesInit)
 	)
 	newData, err := m.filterDataForInsertOrUpdate(m.data)
 	if err != nil {
@@ -284,7 +284,10 @@ func (m *Model) doInsertWithOption(ctx context.Context, insertOption int) (resul
 		if listItem, err = m.db.ConvertDataForRecord(ctx, value); err != nil {
 			return nil, err
 		}
-		list = List{listItem}
+		list = List{}
+		if len(listItem) > 0 {
+			list = append(list, listItem)
+		}
 
 	default:
 		reflectInfo := reflection.OriginValueAndKind(newData)
@@ -301,8 +304,11 @@ func (m *Model) doInsertWithOption(ctx context.Context, insertOption int) (resul
 			if listItem, err = m.db.ConvertDataForRecord(ctx, value); err != nil {
 				return nil, err
 			}
-			list = List{listItem}
-
+			// bugfix: listItem may be empty
+			list = List{}
+			if len(listItem) > 0 {
+				list = append(list, listItem)
+			}
 		case reflect.Struct:
 			if v, ok := value.(iInterfaces); ok {
 				array := v.Interfaces()

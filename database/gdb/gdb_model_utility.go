@@ -7,6 +7,7 @@
 package gdb
 
 import (
+	"github.com/gogf/gf/v2/container/gtype"
 	"time"
 
 	"github.com/gogf/gf/v2/container/gset"
@@ -166,6 +167,69 @@ func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEm
 			case *gtime.Time:
 				if r.IsZero() {
 					continue
+				}
+			}
+			tempMap[k] = v
+		}
+		data = tempMap
+	} else if m.option&optionOmitEmptyPK > 0 { // remove key-value pair of which key is primary key and value is empty
+		tempMap := make(Map, len(data))
+		for k, v := range data {
+			if k == m.getPrimaryKey() {
+				if empty.IsEmpty(v) {
+					continue
+				}
+				// Special type filtering.
+				switch r := v.(type) {
+				//gtype.Int, gtype.Int32, gtype.Int64, gtype.Uint, gtype.Uint32, gtype.Uint64
+				case gtype.Int:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Int:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Int32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Int32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Int64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Int64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Uint:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Uint:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Uint32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Uint32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Uint64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Uint64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
 				}
 			}
 			tempMap[k] = v

@@ -12,7 +12,7 @@ type Database struct {
 }
 
 // Database creates and returns a database.
-func (c *Core) Database(database string, schema ...string) *Database {
+func (c *Core) Database(database string) *Database {
 	// Do not change the database of the original db,
 	// it here creates a new db and changes its database.
 	db, err := NewByGroup(c.GetGroup())
@@ -24,9 +24,26 @@ func (c *Core) Database(database string, schema ...string) *Database {
 	core.logger = c.logger
 	core.cache = c.cache
 	core.database = database
-	if schema != nil && len(schema) > 1 {
-		core.schema = schema[0]
+	return &Database{
+		DB: db,
 	}
+}
+
+// Schema creates and returns a database which connection is set "search path" or "current schema" to `schema` parameter.
+// Note: in Mysql, Schema acts same as DB.Database, in another database it switches schema (schema as same as namespace).
+func (c *Core) Schema(schema string) *Database {
+	// Do not change the database of the original db,
+	// it here creates a new db and changes its schema.
+	db, err := newDBByConfigNode(c.GetConfig(), c.GetGroup())
+	if err != nil {
+		panic(err)
+	}
+	core := db.GetCore()
+	// Different database share some same objects.
+	core.logger = c.GetLogger()
+	core.cache = c.GetCache()
+	core.database = c.GetDatabase()
+	core.schema = schema
 	return &Database{
 		DB: db,
 	}

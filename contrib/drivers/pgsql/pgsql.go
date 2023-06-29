@@ -365,8 +365,7 @@ func (d *Driver) DoInsert(ctx context.Context, link gdb.Link, table string, list
 		)
 
 	case gdb.InsertOptionDefault:
-		tableFields, err := d.GetCore().GetDB().TableFields(ctx, table)
-		if err == nil {
+		if tableFields, err := d.TableFields(ctx, table); err == nil {
 			for _, field := range tableFields {
 				if field.Key == "pri" {
 					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, field)
@@ -382,7 +381,7 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 	var (
 		isUseCoreDoExec bool   = false // Check whether the default method needs to be used
 		primaryKey      string = ""
-		pkField         gdb.TableField
+		pkField         *gdb.TableField
 	)
 
 	// Transaction checks.
@@ -396,7 +395,8 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 
 	if value := ctx.Value(internalPrimaryKeyInCtx); value != nil {
 		var ok bool
-		pkField, ok = value.(gdb.TableField)
+		// TODO 检查所有从ctx中存、取internalPrimaryKeyInCtx键数据的类型，这里取值类型必须和存入时的类型（要么是指针，要么是值）保持一致，
+		pkField, ok = value.(*gdb.TableField)
 		if !ok {
 			isUseCoreDoExec = true
 		}

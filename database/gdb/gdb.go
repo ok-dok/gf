@@ -50,7 +50,13 @@ type DB interface {
 
 	// Database creates and returns a database.
 	// Also see Core.Database.
-	Database(database string, schema ...string) *Database
+	Database(database string) *Database
+
+	// Schema creates and returns a database which connection is set "search path" or "current schema" to `schema` parameter.
+	// Note: in Mysql, Schema acts same as DB.Database, in another database it switches schema (schema as same as namespace).
+	// This method can be overridden in Driver
+	// Also see Driver.Schema.
+	Schema(schema string) *Database
 
 	// With creates and returns an ORM model based on metadata of given object.
 	// Also see Core.With.

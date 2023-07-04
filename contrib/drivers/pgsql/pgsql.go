@@ -397,18 +397,17 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 		var ok bool
 		// TODO 检查所有从ctx中存、取internalPrimaryKeyInCtx键数据的类型，这里取值类型必须和存入时的类型（要么是指针，要么是值）保持一致，
 		pkField, ok = value.(*gdb.TableField)
+		// check if it is an insert operation.
+		// when it exists pkField and is an insert operation, `sql` should append " RETURNING pkName"
+		// regardless of whether the `link` is transaction
 		if !ok {
 			isUseCoreDoExec = true
+		} else if pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
+			primaryKey = pkField.Name
+			sql += " RETURNING " + primaryKey
 		}
 	} else {
 		isUseCoreDoExec = true
-	}
-	// check if it is an insert operation.
-	// when it exists pkField and is an insert operation, `sql` should append " RETURNING pkName"
-	// regardless of whether the `link` is transaction
-	if pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
-		primaryKey = pkField.Name
-		sql += " RETURNING " + primaryKey
 	}
 
 	if isUseCoreDoExec {

@@ -117,11 +117,11 @@ func (d *Driver) DoFilter(ctx context.Context, link gdb.Link, sql string, args [
 	return d.Core.DoFilter(ctx, link, sql, args)
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database.
 // It's mainly used in cli tool chain for automatically generating the models.
-func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (d *Driver) Tables(ctx context.Context, database ...string) (tables []string, err error) {
 	var result gdb.Result
-	link, err := d.SlaveLink(schema...)
+	link, err := d.SlaveLink(database...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,18 +138,18 @@ func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string,
 	return
 }
 
-// TableFields retrieves and returns the fields' information of specified table of current schema.
+// TableFields retrieves and returns the fields' information of specified table of current database.
 //
 // Also see DriverMysql.TableFields.
 func (d *Driver) TableFields(
-	ctx context.Context, table string, schema ...string,
+	ctx context.Context, table string, database ...string,
 ) (fields map[string]*gdb.TableField, err error) {
 	var (
-		result     gdb.Result
-		link       gdb.Link
-		usedSchema = gutil.GetOrDefaultStr(d.GetSchema(), schema...)
+		result       gdb.Result
+		link         gdb.Link
+		usedDatabase = gutil.GetOrDefaultStr(d.GetDatabase(), database...)
 	)
-	if link, err = d.SlaveLink(usedSchema); err != nil {
+	if link, err = d.SlaveLink(usedDatabase); err != nil {
 		return nil, err
 	}
 	result, err = d.DoSelect(ctx, link, fmt.Sprintf(`PRAGMA TABLE_INFO(%s)`, d.QuoteWord(table)))

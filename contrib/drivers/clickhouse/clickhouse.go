@@ -118,7 +118,7 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database.
 // It's mainly used in cli tool chain for automatically generating the models.
 func (d *Driver) Tables(ctx context.Context, database ...string) (tables []string, err error) {
 	var result gdb.Result
@@ -137,7 +137,7 @@ func (d *Driver) Tables(ctx context.Context, database ...string) (tables []strin
 	return
 }
 
-// TableFields retrieves and returns the fields' information of specified table of current schema.
+// TableFields retrieves and returns the fields' information of specified table of current database.
 // Also see DriverMysql.TableFields.
 func (d *Driver) TableFields(
 	ctx context.Context, table string, database ...string,

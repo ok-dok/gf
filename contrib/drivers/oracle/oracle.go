@@ -198,7 +198,7 @@ func (d *Driver) parseSql(sql string) string {
 // Tables retrieves and returns the tables of current schema.
 // It's mainly used in cli tool chain for automatically generating the models.
 // Note that it ignores the parameter `schema` in oracle database, as it is not necessary.
-func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (d *Driver) Tables(ctx context.Context, database ...string) (tables []string, err error) {
 	var result gdb.Result
 	result, err = d.DoSelect(ctx, nil, "SELECT TABLE_NAME FROM USER_TABLES ORDER BY TABLE_NAME")
 	if err != nil {
@@ -212,7 +212,7 @@ func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string,
 	return
 }
 
-// TableFields retrieves and returns the fields' information of specified table of current schema.
+// TableFields retrieves and returns the fields' information of specified table of current database.
 //
 // Also see DriverMysql.TableFields.
 func (d *Driver) TableFields(

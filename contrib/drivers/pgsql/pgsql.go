@@ -403,12 +403,15 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 	} else {
 		isUseCoreDoExec = true
 	}
-
 	// check if it is an insert operation.
-	if !isUseCoreDoExec && pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
+	// when it exists pkField and is an insert operation, `sql` should append " RETURNING pkName"
+	// regardless of whether the `link` is transaction
+	if pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
 		primaryKey = pkField.Name
 		sql += " RETURNING " + primaryKey
-	} else {
+	}
+
+	if isUseCoreDoExec {
 		// use default DoExec
 		return d.Core.DoExec(ctx, link, sql, args...)
 	}

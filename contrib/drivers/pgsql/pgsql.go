@@ -400,11 +400,12 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 		// check if it is an insert operation.
 		// when it exists pkField and is an insert operation, `sql` should append " RETURNING pkName"
 		// regardless of whether the `link` is transaction
-		if !ok {
-			isUseCoreDoExec = true
-		} else if pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
+		if ok && pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
 			primaryKey = pkField.Name
 			sql += " RETURNING " + primaryKey
+			isUseCoreDoExec = false
+		} else {
+			isUseCoreDoExec = true
 		}
 	} else {
 		isUseCoreDoExec = true
@@ -416,7 +417,6 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 	}
 
 	// Only the insert operation with primary key can execute the following code
-
 	if d.GetConfig().ExecTimeout > 0 {
 		var cancelFunc context.CancelFunc
 		ctx, cancelFunc = context.WithTimeout(ctx, d.GetConfig().ExecTimeout)
@@ -425,7 +425,7 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 
 	// Sql filtering.
 	// TODO: internal function formatSql
-	// sql, args = formatSql(sql, args)
+	//sql, args = formatSql(sql, args)
 	sql, args, err = d.DoFilter(ctx, link, sql, args)
 	if err != nil {
 		return nil, err
@@ -433,7 +433,7 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 
 	// Link execution.
 	var out gdb.DoCommitOutput
-	out, err = d.DoCommit(ctx, gdb.DoCommitInput{
+	out, err = d.Core.DoCommit(ctx, gdb.DoCommitInput{
 		Link:          link,
 		Sql:           sql,
 		Args:          args,

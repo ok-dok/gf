@@ -163,7 +163,7 @@ func TestModelSave(t *testing.T) {
 		gtest.Assert(err, nil)
 
 		// TODO:: Should be Supported 'Replace' Operation
-		// _, err = db.Schema(TestDbName).Replace(ctx, "DoInsert", data, 10)
+		// _, err = db.Database(TestDbName).Replace(ctx, "DoInsert", data, 10)
 		// gtest.Assert(err, nil)
 	})
 }
@@ -180,7 +180,7 @@ func TestModelInsert(t *testing.T) {
 			// CreatedTime: time.Now(),
 			UpdatedTime: time.Now(),
 		}
-		// _, err := db.Schema(TestDbName).Model("A_tables").Data(data).Insert()
+		// _, err := db.Database(TestDbName).Model("A_tables").Data(data).Insert()
 		_, err := db.Model("A_tables").Insert(&data)
 		gtest.Assert(err, nil)
 	})
@@ -195,7 +195,7 @@ func TestModelInsert(t *testing.T) {
 			CreatedTime: time.Now(),
 			// UpdatedTime: time.Now(),
 		}
-		// _, err := db.Schema(TestDbName).Model("A_tables").Data(data).Insert()
+		// _, err := db.Database(TestDbName).Model("A_tables").Data(data).Insert()
 		_, err := db.Model("A_tables").Data(&data).Insert()
 		gtest.Assert(err, nil)
 	})

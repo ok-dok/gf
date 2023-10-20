@@ -374,8 +374,8 @@ func (c *Core) ConvertValueForLocal(ctx context.Context, fieldType string, field
 
 // mappingAndFilterData automatically mappings the map key to table field and removes
 // all key-value pairs that are not the field of given table.
-func (c *Core) mappingAndFilterData(ctx context.Context, schema, table string, data map[string]interface{}, filter bool) (map[string]interface{}, error) {
-	fieldsMap, err := c.db.TableFields(ctx, c.guessPrimaryTableName(table), schema)
+func (c *Core) mappingAndFilterData(ctx context.Context, database, schema, table string, data map[string]interface{}, filter bool) (map[string]interface{}, error) {
+	fieldsMap, err := c.db.TableFieldsInSchema(ctx, c.guessPrimaryTableName(table), schema, database)
 	if err != nil {
 		return nil, err
 	}

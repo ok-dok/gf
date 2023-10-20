@@ -15,6 +15,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/gogf/gf/v2/container/gmap"
+	"github.com/gogf/gf/v2/container/gset"
+	"github.com/gogf/gf/v2/frame/g"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -88,8 +91,8 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 			)
 		}
 
-		if config.Namespace != "" {
-			source = fmt.Sprintf("%s search_path=%s", source, config.Namespace)
+		if config.Schema != "" {
+			source = fmt.Sprintf("%s search_path=%s", source, config.Schema)
 		}
 
 		if config.Timezone != "" {
@@ -117,8 +120,8 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-// GetChars returns the security char for this type of database.
-func (d *Driver) GetChars() (charLeft string, charRight string) {
+// GetQuoteChars returns the security char for this type of database.
+func (d *Driver) GetQuoteChars() (charLeft string, charRight string) {
 	return quoteChar, quoteChar
 }
 
@@ -222,34 +225,32 @@ func (d *Driver) DoFilter(ctx context.Context, link gdb.Link, sql string, args [
 	return d.Core.DoFilter(ctx, link, newSql, args)
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database's default or public schema(if the db support schema).
 // It's mainly used in cli tool chain for automatically generating the models.
-func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (d *Driver) Tables(ctx context.Context, database ...string) (tables []string, err error) {
+	return d.TablesInSchema(ctx, d.GetSchema(), database...)
+}
+
+// TablesInSchema retrieves and returns the tables of given database's schema.
+// It's mainly used in cli tool chain for automatically generating the models.
+func (d *Driver) TablesInSchema(ctx context.Context, schema string, database ...string) (tables []string, err error) {
 	var (
-		result     gdb.Result
-		usedSchema = gutil.GetOrDefaultStr(d.GetConfig().Namespace, schema...)
+		result gdb.Result
+		//usedDatabase = gutil.GetOrDefaultStr(d.GetConfig().Name, database...)
+		usedSchema = gutil.GetOrDefaultStr(d.GetSchema(), schema)
 	)
 	if usedSchema == "" {
 		usedSchema = defaultSchema
 	}
-	// DO NOT use `usedSchema` as parameter for function `SlaveLink`.
-	link, err := d.SlaveLink(schema...)
+	// DO NOT use `usedDatabase` as parameter for function `SlaveLink`.
+	link, err := d.SlaveLink(database...)
 	if err != nil {
 		return nil, err
 	}
 	var query = fmt.Sprintf(`
-SELECT
-	c.relname
-FROM
-	pg_class c
-INNER JOIN pg_namespace n ON
-	c.relnamespace = n.oid
-WHERE
-	n.nspname = '%s'
-	AND c.relkind IN ('r', 'p')
-	AND c.relpartbound IS NULL
-ORDER BY
-	c.relname`,
+SELECT t.tablename
+FROM pg_tables t
+WHERE t.schemaname = '%s'`,
 		usedSchema,
 	)
 
@@ -266,31 +267,45 @@ ORDER BY
 	return
 }
 
-// TableFields retrieves and returns the fields' information of specified table of current schema.
-func (d *Driver) TableFields(ctx context.Context, table string, schema ...string) (fields map[string]*gdb.TableField, err error) {
+// TableFields retrieves and returns the fields' information of specified table of given database's schema.
+func (d *Driver) TableFields(ctx context.Context, table string, database ...string) (fields map[string]*gdb.TableField, err error) {
+	return d.TableFieldsInSchema(ctx, table, d.GetSchema(), database...)
+}
+
+// TableFieldsInSchema retrieves and returns the fields' information of specified table of given database's schema.
+func (d *Driver) TableFieldsInSchema(ctx context.Context, table string, schema string, database ...string) (fields map[string]*gdb.TableField, err error) {
 	var (
-		result     gdb.Result
-		link       gdb.Link
-		usedSchema = gutil.GetOrDefaultStr(d.GetSchema(), schema...)
-		// TODO duplicated `id` result?
-		structureSql = fmt.Sprintf(`
+		result gdb.Result
+		link   gdb.Link
+		//usedDatabase = gutil.GetOrDefaultStr(d.GetConfig().Name, database...)
+		usedSchema = gutil.GetOrDefaultStr(d.GetSchema(), schema)
+	)
+	if usedSchema == "" {
+		usedSchema = defaultSchema
+	}
+	structureSql := fmt.Sprintf(`
 SELECT a.attname AS field, t.typname AS type,a.attnotnull as null,
-    (case when d.contype is not null then 'pri' else '' end)  as key
+    (case
+		when d.contype = 'p' then 'pri'
+		when d.contype = 'f' then 'for'
+		else '' end)  as key
       ,ic.column_default as default_value,b.description as comment
       ,coalesce(character_maximum_length, numeric_precision, -1) as length
       ,numeric_scale as scale
 FROM pg_attribute a
          left join pg_class c on a.attrelid = c.oid
+         inner join pg_namespace n ON c.relnamespace = n.oid
          left join pg_constraint d on d.conrelid = c.oid and a.attnum = d.conkey[1]
          left join pg_description b ON a.attrelid=b.objoid AND a.attnum = b.objsubid
          left join pg_type t ON a.atttypid = t.oid
-         left join information_schema.columns ic on ic.column_name = a.attname and ic.table_name = c.relname
-WHERE c.relname = '%s' and a.attisdropped is false and a.attnum > 0
+         left join information_schema.columns ic on ic.column_name = a.attname and ic.table_name = c.relname and ic.table_schema = n.nspname
+WHERE n.nspname = '%s' and c.relname = '%s' and a.attisdropped is false and a.attnum > 0
 ORDER BY a.attnum`,
-			table,
-		)
+		usedSchema,
+		gstr.Trim(table, quoteChar),
 	)
-	if link, err = d.SlaveLink(usedSchema); err != nil {
+	// DO NOT use `usedDatabase` as parameter for function `SlaveLink`.
+	if link, err = d.SlaveLinkWithSchema(usedSchema, database...); err != nil {
 		return nil, err
 	}
 	structureSql, _ = gregex.ReplaceString(`[\n\r\s]+`, " ", gstr.Trim(structureSql))
@@ -328,10 +343,7 @@ ORDER BY a.attnum`,
 func (d *Driver) DoInsert(ctx context.Context, link gdb.Link, table string, list gdb.List, option gdb.DoInsertOption) (result sql.Result, err error) {
 	switch option.InsertOption {
 	case gdb.InsertOptionSave:
-		return nil, gerror.NewCode(
-			gcode.CodeNotSupported,
-			`Save operation is not supported by pgsql driver`,
-		)
+		return d.insertOrUpdate(ctx, link, table, list, option)
 
 	case gdb.InsertOptionReplace:
 		return nil, gerror.NewCode(
@@ -346,12 +358,10 @@ func (d *Driver) DoInsert(ctx context.Context, link gdb.Link, table string, list
 		)
 
 	case gdb.InsertOptionDefault:
-		tableFields, err := d.GetCore().GetDB().TableFields(ctx, table)
-		if err == nil {
+		if tableFields, err := d.TableFields(ctx, table); err == nil {
 			for _, field := range tableFields {
 				if field.Key == "pri" {
-					pkField := *field
-					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, pkField)
+					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, field)
 					break
 				}
 			}
@@ -366,7 +376,7 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 	var (
 		isUseCoreDoExec bool   = false // Check whether the default method needs to be used
 		primaryKey      string = ""
-		pkField         gdb.TableField
+		pkField         *gdb.TableField
 	)
 
 	// Transaction checks.
@@ -388,25 +398,28 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 	// Check if it is an insert operation with primary key.
 	if value := ctx.Value(internalPrimaryKeyInCtx); value != nil {
 		var ok bool
-		pkField, ok = value.(gdb.TableField)
-		if !ok {
+		// TODO 检查所有从ctx中存、取internalPrimaryKeyInCtx键数据的类型，这里取值类型必须和存入时的类型（要么是指针，要么是值）保持一致，
+		pkField, ok = value.(*gdb.TableField)
+		// check if it is an insert operation.
+		// when it exists pkField and is an insert operation, `sql` should append " RETURNING pkName"
+		// regardless of whether the `link` is transaction
+		if ok && pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
+			primaryKey = pkField.Name
+			sql += " RETURNING " + primaryKey
+			isUseCoreDoExec = false
+		} else {
 			isUseCoreDoExec = true
 		}
 	} else {
 		isUseCoreDoExec = true
 	}
 
-	// check if it is an insert operation.
-	if !isUseCoreDoExec && pkField.Name != "" && strings.Contains(sql, "INSERT INTO") {
-		primaryKey = pkField.Name
-		sql += " RETURNING " + primaryKey
-	} else {
+	if isUseCoreDoExec {
 		// use default DoExec
 		return d.Core.DoExec(ctx, link, sql, args...)
 	}
 
 	// Only the insert operation with primary key can execute the following code
-
 	if d.GetConfig().ExecTimeout > 0 {
 		var cancelFunc context.CancelFunc
 		ctx, cancelFunc = context.WithTimeout(ctx, d.GetConfig().ExecTimeout)
@@ -422,7 +435,7 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 
 	// Link execution.
 	var out gdb.DoCommitOutput
-	out, err = d.DoCommit(ctx, gdb.DoCommitInput{
+	out, err = d.Core.DoCommit(ctx, gdb.DoCommitInput{
 		Link:          link,
 		Sql:           sql,
 		Args:          args,
@@ -456,4 +469,190 @@ func (d *Driver) DoExec(ctx context.Context, link gdb.Link, sql string, args ...
 	}
 
 	return Result{}, nil
+}
+
+func (d *Driver) insertOrUpdate(ctx context.Context, link gdb.Link, table string, list gdb.List, option gdb.DoInsertOption) (res sql.Result, err error) {
+	var (
+		keys           []string      // Field names.
+		values         []string      // Value holder string array, like: (?,?,?)
+		params         []interface{} // Values that will be committed to underlying database driver.
+		onDuplicateStr string        // onDuplicateStr is used in "ON CONFLICT (col_name) DO UPDATE SET" statement.
+	)
+	// Group the list by fields. Different fields to different list.
+	// It here uses ListMap to keep sequence for data inserting.
+	var keyListMap = gmap.NewListMap()
+	for _, item := range list {
+		var (
+			tmpKeys              = make([]string, 0)
+			tmpKeysInSequenceStr string
+		)
+		for k := range item {
+			tmpKeys = append(tmpKeys, k)
+		}
+		var tableFields map[string]*gdb.TableField
+		if tableFields, err = d.TableFields(ctx, table); err == nil {
+			for _, field := range tableFields {
+				if field.Key == "pri" {
+					ctx = context.WithValue(ctx, internalPrimaryKeyInCtx, field)
+					break
+				}
+			}
+			keys, err = d.fieldsToSequence(tableFields, tmpKeys)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		tmpKeysInSequenceStr = gstr.Join(keys, ",")
+
+		if !keyListMap.Contains(tmpKeysInSequenceStr) {
+			keyListMap.Set(tmpKeysInSequenceStr, make(g.List, 0))
+		}
+		tmpKeysInSequenceList := keyListMap.Get(tmpKeysInSequenceStr).(g.List)
+		tmpKeysInSequenceList = append(tmpKeysInSequenceList, item)
+		keyListMap.Set(tmpKeysInSequenceStr, tmpKeysInSequenceList)
+	}
+	if keyListMap.Size() > 1 {
+		var (
+			tmpResult    sql.Result
+			sqlResult    gdb.SqlResult
+			rowsAffected int64
+		)
+		keyListMap.Iterator(func(key, value interface{}) bool {
+			tmpResult, err = d.Core.DoInsert(ctx, link, table, value.(g.List), option)
+			if err != nil {
+				return false
+			}
+			rowsAffected, err = tmpResult.RowsAffected()
+			if err != nil {
+				return false
+			}
+			sqlResult.Result = tmpResult
+			sqlResult.Affected += rowsAffected
+			return true
+		})
+		return &sqlResult, nil
+	}
+	// Prepare the batch result pointer.
+	var (
+		charL, charR = d.GetQuoteChars()
+		batchResult  = new(gdb.SqlResult)
+		keysStr      = charL + strings.Join(keys, charR+","+charL) + charR
+		operation    = gdb.GetInsertOperationByOption(option.InsertOption)
+	)
+	if option.InsertOption == gdb.InsertOptionSave {
+		var pkField = ctx.Value(internalPrimaryKeyInCtx).(*gdb.TableField)
+		if pkField != nil {
+			pk := pkField.Name
+			onDuplicateStr = d.formatOnDuplicate(keys, d.QuoteWord(pk), option)
+		} else {
+			return nil, gerror.Newf("cannot read key %s from ctx", d.QuoteWord(string(internalPrimaryKeyInCtx)))
+		}
+	}
+	var (
+		listLength  = len(list)
+		valueHolder = make([]string, 0)
+	)
+	for i := 0; i < listLength; i++ {
+		values = values[:0]
+		// Note that the map type is unordered,
+		// so it should use slice+key to retrieve the value.
+		for _, k := range keys {
+			if s, ok := list[i][k].(gdb.Raw); ok {
+				values = append(values, gconv.String(s))
+			} else {
+				values = append(values, "?")
+				params = append(params, list[i][k])
+			}
+		}
+		valueHolder = append(valueHolder, "("+gstr.Join(values, ",")+")")
+		// Batch package checks: It meets the batch number, or it is the last element.
+		if len(valueHolder) == option.BatchCount || (i == listLength-1 && len(valueHolder) > 0) {
+			var (
+				stdSqlResult sql.Result
+				affectedRows int64
+			)
+			stdSqlResult, err = d.DoExec(ctx, link, fmt.Sprintf(
+				"%s INTO %s(%s) VALUES%s %s",
+				operation, d.QuotePrefixTableName(table), keysStr,
+				gstr.Join(valueHolder, ","),
+				onDuplicateStr,
+			), params...)
+			if err != nil {
+				return stdSqlResult, err
+			}
+			if affectedRows, err = stdSqlResult.RowsAffected(); err != nil {
+				err = gerror.WrapCode(gcode.CodeDbOperationError, err, `sql.Result.RowsAffected failed`)
+				return stdSqlResult, err
+			} else {
+				batchResult.Result = stdSqlResult
+				batchResult.Affected += affectedRows
+			}
+			params = params[:0]
+			valueHolder = valueHolder[:0]
+		}
+	}
+	return batchResult, nil
+}
+
+func (d *Driver) fieldsToSequence(tableFields map[string]*gdb.TableField, fields []string) ([]string, error) {
+	var (
+		fieldSet               = gset.NewStrSetFrom(fields)
+		fieldsResultInSequence = make([]string, 0)
+	)
+	// Sort the fields in order.
+	var fieldsOfTableInSequence = make([]string, len(tableFields))
+	for _, field := range tableFields {
+		fieldsOfTableInSequence[field.Index] = field.Name
+	}
+	// Sort the input fields.
+	for _, fieldName := range fieldsOfTableInSequence {
+		if fieldSet.Contains(fieldName) {
+			fieldsResultInSequence = append(fieldsResultInSequence, fieldName)
+		}
+	}
+	return fieldsResultInSequence, nil
+}
+
+func (d *Driver) formatOnDuplicate(columns []string, pk string, option gdb.DoInsertOption) string {
+	var onDuplicateStr string
+	if option.OnDuplicateStr != "" {
+		onDuplicateStr = option.OnDuplicateStr
+	} else if len(option.OnDuplicateMap) > 0 {
+		for k, v := range option.OnDuplicateMap {
+			if len(onDuplicateStr) > 0 {
+				onDuplicateStr += ","
+			}
+			switch v.(type) {
+			case gdb.Raw, *gdb.Raw:
+				onDuplicateStr += fmt.Sprintf(
+					"%s=%s",
+					d.QuoteWord(k),
+					v,
+				)
+			default:
+				onDuplicateStr += fmt.Sprintf(
+					"%s=%s",
+					d.QuoteWord(k),
+					d.QuoteWord(gconv.String(v)),
+				)
+			}
+		}
+	} else {
+		for _, column := range columns {
+			// If it's SAVE operation, do not automatically update the creating time.
+			if d.GetCore().IsSoftCreatedFieldName(column) {
+				continue
+			}
+			if len(onDuplicateStr) > 0 {
+				onDuplicateStr += ","
+			}
+			onDuplicateStr += fmt.Sprintf(
+				"%s=EXCLUDED.%s",
+				d.QuoteWord(column),
+				d.QuoteWord(column),
+			)
+		}
+	}
+	return fmt.Sprintf("ON CONFLICT (%s) DO UPDATE SET %s", d.QuoteWord(pk), onDuplicateStr)
 }

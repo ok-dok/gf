@@ -46,11 +46,18 @@ func (c *Core) GetLink(ctx context.Context, master bool, schema string) (Link, e
 	return link, nil
 }
 
-// MasterLink acts like function Master but with additional `schema` parameter specifying
-// the schema for the connection. It is defined for internal usage.
+// MasterLink acts like function Master but with additional `database` parameter specifying
+// the database for the connection. It is defined for internal usage.
 // Also see Master.
-func (c *Core) MasterLink(schema ...string) (Link, error) {
-	db, err := c.db.Master(schema...)
+func (c *Core) MasterLink(database ...string) (Link, error) {
+	return c.MasterLinkWithSchema(c.GetSchema(), database...)
+}
+
+// MasterLinkWithSchema acts like function MasterWithSchema but with additional `schema` and `database` parameter specifying
+// the database for the connection and the schema namespace for searching. It is defined for internal usage.
+// Also see Master.
+func (c *Core) MasterLinkWithSchema(schema string, database ...string) (Link, error) {
+	db, err := c.db.MasterWithSchema(schema, database...)
 	if err != nil {
 		return nil, err
 	}
@@ -60,11 +67,18 @@ func (c *Core) MasterLink(schema ...string) (Link, error) {
 	}, nil
 }
 
-// SlaveLink acts like function Slave but with additional `schema` parameter specifying
-// the schema for the connection. It is defined for internal usage.
+// SlaveLink acts like function Slave but with additional `database` parameter specifying
+// the database for the connection. It is defined for internal usage.
 // Also see Slave.
-func (c *Core) SlaveLink(schema ...string) (Link, error) {
-	db, err := c.db.Slave(schema...)
+func (c *Core) SlaveLink(database ...string) (Link, error) {
+	return c.SlaveLinkWithSchema(c.GetSchema(), database...)
+}
+
+// SlaveLinkWithSchema acts like function SlaveWithSchema but with additional `schema` and `database` parameter specifying
+// the database for the connection and the schema namespace for searching. It is defined for internal usage.
+// Also see Slave.
+func (c *Core) SlaveLinkWithSchema(schema string, database ...string) (Link, error) {
+	db, err := c.db.SlaveWithSchema(schema, database...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +98,7 @@ func (c *Core) QuoteWord(s string) string {
 	if s == "" {
 		return s
 	}
-	charLeft, charRight := c.db.GetChars()
+	charLeft, charRight := c.db.GetQuoteChars()
 	return doQuoteWord(s, charLeft, charRight)
 }
 
@@ -93,7 +107,7 @@ func (c *Core) QuoteWord(s string) string {
 //
 // The meaning of a `string` can be considered as part of a statement string including columns.
 func (c *Core) QuoteString(s string) string {
-	charLeft, charRight := c.db.GetChars()
+	charLeft, charRight := c.db.GetQuoteChars()
 	return doQuoteString(s, charLeft, charRight)
 }
 
@@ -107,26 +121,42 @@ func (c *Core) QuoteString(s string) string {
 // Note that, this will automatically checks the table prefix whether already added,
 // if true it does nothing to the table name, or else adds the prefix to the table name.
 func (c *Core) QuotePrefixTableName(table string) string {
-	charLeft, charRight := c.db.GetChars()
+	charLeft, charRight := c.db.GetQuoteChars()
 	return doQuoteTableName(table, c.db.GetPrefix(), charLeft, charRight)
 }
 
-// GetChars returns the security char for current database.
+// GetQuoteChars returns the security char for current database.
 // It does nothing in default.
-func (c *Core) GetChars() (charLeft string, charRight string) {
+func (c *Core) GetQuoteChars() (charLeft string, charRight string) {
 	return "", ""
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database's public or default schema(if the db support schema).
+//
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
+// as its link to proceed necessary sql query.
+//
 // It's mainly used in cli tool chain for automatically generating the models.
-func (c *Core) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (c *Core) Tables(ctx context.Context, database ...string) (tables []string, err error) {
+	return
+}
+
+// TablesInSchema retrieves and returns the tables of given database's schema(if the db support schema).
+//
+// The parameter `schema` is required. It set the search_path to `schema` in pgsql, set current_schema `schema` in oracle or DB2, set default_schema to `schema` in mssql.
+//
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
+// as its link to proceed necessary sql query.
+//
+// It's mainly used in cli tool chain for automatically generating the models.
+func (c *Core) TablesInSchema(ctx context.Context, schema string, database ...string) (tables []string, err error) {
 	return
 }
 
 // TableFields retrieves and returns the fields' information of specified table of current
-// schema.
+// database public or default schema(if the db support schema).
 //
-// The parameter `link` is optional, if given nil it automatically retrieves a raw sql connection
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
 // as its link to proceed necessary sql query.
 //
 // Note that it returns a map containing the field name and its corresponding fields.
@@ -135,17 +165,34 @@ func (c *Core) Tables(ctx context.Context, schema ...string) (tables []string, e
 //
 // It's using cache feature to enhance the performance, which is never expired util the
 // process restarts.
-func (c *Core) TableFields(ctx context.Context, table string, schema ...string) (fields map[string]*TableField, err error) {
+func (c *Core) TableFields(ctx context.Context, table string, database ...string) (fields map[string]*TableField, err error) {
+	return
+}
+
+// TableFieldsInSchema retrieves and returns the fields' information of specified table of given
+// database's schema.
+//
+// The parameter `schema` is required. It set the search_path to `schema` in pgsql, set current_schema `schema` in oracle or DB2, set default_schema to `schema` in mssql.
+//
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
+// as its link to proceed necessary sql query.
+// Note that it returns a map containing the field name and its corresponding fields.
+// As a map is unsorted, the TableField struct has an "Index" field marks its sequence in
+// the fields.
+//
+// It's using cache feature to enhance the performance, which is never expired util the
+// process restarts.
+func (c *Core) TableFieldsInSchema(ctx context.Context, table string, schema string, database ...string) (fields map[string]*TableField, err error) {
 	return
 }
 
 // ClearTableFields removes certain cached table fields of current configuration group.
-func (c *Core) ClearTableFields(ctx context.Context, table string, schema ...string) (err error) {
+func (c *Core) ClearTableFields(ctx context.Context, table string, database ...string) (err error) {
 	tableFieldsMap.Remove(fmt.Sprintf(
 		`%s%s@%s#%s`,
 		cachePrefixTableFields,
 		c.db.GetGroup(),
-		gutil.GetOrDefaultStr(c.db.GetSchema(), schema...),
+		gutil.GetOrDefaultStr(c.db.GetDatabase(), database...),
 		table,
 	))
 	return
@@ -179,11 +226,12 @@ func (c *Core) ClearCacheAll(ctx context.Context) (err error) {
 	return c.db.GetCache().Clear(ctx)
 }
 
-func (c *Core) makeSelectCacheKey(name, schema, table, sql string, args ...interface{}) string {
+func (c *Core) makeSelectCacheKey(name, database, schema, table, sql string, args ...interface{}) string {
 	if name == "" {
 		name = fmt.Sprintf(
-			`%s@%s#%s:%s`,
+			`%s@%s?%s#%s:%s`,
 			c.db.GetGroup(),
+			database,
 			schema,
 			table,
 			gmd5.MustEncryptString(sql+", @PARAMS:"+gconv.String(args)),
@@ -209,7 +257,7 @@ func (c *Core) HasField(ctx context.Context, table, field string, schema ...stri
 	for k, v := range tableFields {
 		fieldsArray[v.Index] = k
 	}
-	charLeft, charRight := c.db.GetChars()
+	charLeft, charRight := c.db.GetQuoteChars()
 	field = gstr.Trim(field, charLeft+charRight)
 	for _, f := range fieldsArray {
 		if f == field {
@@ -235,7 +283,7 @@ func (c *Core) guessPrimaryTableName(tableStr string) string {
 	} else {
 		guessedTableName = array3[0]
 	}
-	charL, charR := c.db.GetChars()
+	charL, charR := c.db.GetQuoteChars()
 	if charL != "" || charR != "" {
 		guessedTableName = gstr.Trim(guessedTableName, charL+charR)
 	}

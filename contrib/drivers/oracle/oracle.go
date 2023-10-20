@@ -107,8 +107,8 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-// GetChars returns the security char for this type of database.
-func (d *Driver) GetChars() (charLeft string, charRight string) {
+// GetQuoteChars returns the security char for this type of database.
+func (d *Driver) GetQuoteChars() (charLeft string, charRight string) {
 	return quoteChar, quoteChar
 }
 
@@ -190,7 +190,7 @@ func (d *Driver) parseSql(sql string) string {
 // Tables retrieves and returns the tables of current schema.
 // It's mainly used in cli tool chain for automatically generating the models.
 // Note that it ignores the parameter `schema` in oracle database, as it is not necessary.
-func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (d *Driver) Tables(ctx context.Context, database ...string) (tables []string, err error) {
 	var result gdb.Result
 	result, err = d.DoSelect(ctx, nil, "SELECT TABLE_NAME FROM USER_TABLES ORDER BY TABLE_NAME")
 	if err != nil {
@@ -204,14 +204,16 @@ func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string,
 	return
 }
 
-// TableFields retrieves and returns the fields' information of specified table of current schema.
+// TableFields retrieves and returns the fields' information of specified table of current database.
 //
 // Also see DriverMysql.TableFields.
-func (d *Driver) TableFields(ctx context.Context, table string, schema ...string) (fields map[string]*gdb.TableField, err error) {
+func (d *Driver) TableFields(
+	ctx context.Context, table string, database ...string,
+) (fields map[string]*gdb.TableField, err error) {
 	var (
 		result       gdb.Result
 		link         gdb.Link
-		usedSchema   = gutil.GetOrDefaultStr(d.GetSchema(), schema...)
+		usedDatabase = gutil.GetOrDefaultStr(d.GetDatabase(), database...)
 		structureSql = fmt.Sprintf(`
 SELECT 
     COLUMN_NAME AS FIELD, 
@@ -224,7 +226,7 @@ FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '%s' ORDER BY COLUMN_ID`,
 			strings.ToUpper(table),
 		)
 	)
-	if link, err = d.SlaveLink(usedSchema); err != nil {
+	if link, err = d.SlaveLink(usedDatabase); err != nil {
 		return nil, err
 	}
 	structureSql, _ = gregex.ReplaceString(`[\n\r\s]+`, " ", gstr.Trim(structureSql))
@@ -277,7 +279,7 @@ func (d *Driver) DoInsert(
 	}
 	var (
 		batchResult    = new(gdb.SqlResult)
-		charL, charR   = d.GetChars()
+		charL, charR   = d.GetQuoteChars()
 		keyStr         = charL + strings.Join(keys, charL+","+charR) + charR
 		valueHolderStr = strings.Join(valueHolder, ",")
 	)

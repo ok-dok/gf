@@ -45,6 +45,26 @@ func Test_LastInsertId(t *testing.T) {
 		t.Assert(err, nil)
 		t.Assert(rowsAffected, int64(3))
 	})
+	gtest.C(t, func(t *gtest.T) {
+		tableName := createTable()
+		defer dropTable(tableName)
+		txErr := db.Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+			res, err := tx.Model(tableName).OmitEmptyPK().Insert(
+				g.Map{"id": 0, "passport": "user3", "password": "pwd", "nickname": "nickname", "create_time": CreateTime})
+			t.Assert(err, nil)
+			lastInsertId, err := res.LastInsertId()
+			t.Assert(err, nil)
+			t.Assert(lastInsertId, int64(1))
+			rowsAffected, err := res.RowsAffected()
+			t.Assert(err, nil)
+			t.Assert(rowsAffected, int64(1))
+			return err
+		})
+		t.AssertNil(txErr)
+		if txErr != nil {
+			t.Error(txErr.Error())
+		}
+	})
 }
 
 func Test_TxLastInsertId(t *testing.T) {

@@ -51,7 +51,7 @@ func Test_Basic(t *testing.T) {
 			Object: req,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		t.Assert(len(oai.Components.Schemas.Map()), 2)
 		t.Assert(oai.Components.Schemas.Get(`github.com.gogf.gf.v2.net.goai_test.CreateResourceReq`).Value.Type, goai.TypeObject)
 		t.Assert(len(oai.Components.Schemas.Get(`github.com.gogf.gf.v2.net.goai_test.CreateResourceReq`).Value.Properties.Map()), 7)
@@ -111,7 +111,7 @@ func TestOpenApiV3_Add(t *testing.T) {
 		})
 		t.AssertNil(err)
 		// fmt.Println(oai.String())
-		// Schema asserts.
+		// Database asserts.
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(oai.Components.Schemas.Get(`github.com.gogf.gf.v2.net.goai_test.CreateResourceReq`).Value.Type, goai.TypeObject)
 
@@ -165,7 +165,7 @@ func TestOpenApiV3_Add_Recursive(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(oai.Components.Schemas.Get(`github.com.gogf.gf.v2.net.goai_test.CategoryTreeItem`).Value.Type, goai.TypeObject)
 		t.Assert(len(oai.Components.Schemas.Get(`github.com.gogf.gf.v2.net.goai_test.CategoryTreeItem`).Value.Properties.Map()), 3)
@@ -194,7 +194,7 @@ func TestOpenApiV3_Add_EmptyReqAndRes(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		fmt.Println(oai.String())
 	})
 }
@@ -281,7 +281,7 @@ func TestOpenApiV3_CommonRequest(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(len(oai.Paths), 1)
 		t.Assert(len(oai.Paths["/index"].Put.RequestBody.Value.Content["application/json"].Schema.Value.Properties.Map()), 3)
@@ -341,7 +341,7 @@ func TestOpenApiV3_CommonRequest_WithoutDataField_Setting(t *testing.T) {
 			Object: f2,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		// fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 4)
 		t.Assert(len(oai.Paths), 1)
@@ -384,7 +384,7 @@ func TestOpenApiV3_CommonRequest_EmptyRequest(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		// fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(len(oai.Paths), 1)
@@ -455,7 +455,7 @@ func TestOpenApiV3_CommonRequest_SubDataField(t *testing.T) {
 		})
 		t.AssertNil(err)
 
-		// Schema asserts.
+		// Database asserts.
 		// fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 5)
 		t.Assert(len(oai.Paths), 1)
@@ -505,8 +505,8 @@ func TestOpenApiV3_CommonResponse(t *testing.T) {
 		})
 		t.AssertNil(err)
 
-		//g.Dump(oai.Paths["/index"].Get.Responses["200"].Value.Content["application/json"].Schema.Value.Properties.Map())
-		// Schema asserts.
+		//g.Dump(oai.Paths["/index"].Get.Responses["200"].Value.Content["application/json"].Database.Value.Properties.Map())
+		// Database asserts.
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(len(oai.Paths), 1)
 		t.Assert(len(oai.Paths["/index"].Get.Responses["200"].Value.Content["application/json"].Schema.Value.Properties.Map()), 3)
@@ -554,7 +554,7 @@ func TestOpenApiV3_CommonResponse_WithoutDataField_Setting(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(len(oai.Paths), 1)
@@ -594,7 +594,7 @@ func TestOpenApiV3_CommonResponse_EmptyResponse(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		// fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(len(oai.Paths), 1)
@@ -650,7 +650,7 @@ func TestOpenApiV3_CommonResponse_SubDataField(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		// fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 4)
 		t.Assert(len(oai.Paths), 1)
@@ -707,7 +707,7 @@ func TestOpenApiV3_ShortTags(t *testing.T) {
 		})
 		t.AssertNil(err)
 		// fmt.Println(oai.String())
-		// Schema asserts.
+		// Database asserts.
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(oai.Paths[`/test1/{appId}`].Summary, ``)
 		t.Assert(oai.Paths[`/test1/{appId}`].Description, ``)
@@ -914,7 +914,7 @@ func TestOpenApiV3_Ignore_Parameter(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		// fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(len(oai.Paths), 1)
@@ -1099,7 +1099,7 @@ func TestOpenApiV3_PathSecurity(t *testing.T) {
 			Object: f,
 		})
 		t.AssertNil(err)
-		// Schema asserts.
+		// Database asserts.
 		fmt.Println(oai.String())
 		t.Assert(len(oai.Components.Schemas.Map()), 3)
 		t.Assert(len(oai.Components.SecuritySchemes), 1)

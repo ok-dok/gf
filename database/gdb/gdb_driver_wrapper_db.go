@@ -34,17 +34,34 @@ func (d *DriverWrapperDB) Open(node *ConfigNode) (db *sql.DB, err error) {
 	return d.DB.Open(node)
 }
 
-// Tables retrieves and returns the tables of current schema.
+// Tables retrieves and returns the tables of current database's public or default schema(if the db support schema).
+//
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
+// as its link to proceed necessary sql query.
+//
 // It's mainly used in cli tool chain for automatically generating the models.
-func (d *DriverWrapperDB) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (d *DriverWrapperDB) Tables(ctx context.Context, database ...string) (tables []string, err error) {
 	ctx = context.WithValue(ctx, ctxKeyInternalProducedSQL, struct{}{})
-	return d.DB.Tables(ctx, schema...)
+	return d.DB.Tables(ctx, database...)
+}
+
+// TablesInSchema retrieves and returns the tables of given database's schema(if the db support schema).
+//
+// The parameter `schema` is required. It set the search_path to `schema` in pgsql, set current_schema `schema` in oracle or DB2, set default_schema to `schema` in mssql.
+//
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
+// as its link to proceed necessary sql query.
+//
+// It's mainly used in cli tool chain for automatically generating the models.
+func (d *DriverWrapperDB) TablesInSchema(ctx context.Context, schema string, database ...string) (tables []string, err error) {
+	ctx = context.WithValue(ctx, ctxKeyInternalProducedSQL, struct{}{})
+	return d.DB.TablesInSchema(ctx, schema, database...)
 }
 
 // TableFields retrieves and returns the fields' information of specified table of current
-// schema.
+// database public or default schema(if the db support schema).
 //
-// The parameter `link` is optional, if given nil it automatically retrieves a raw sql connection
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
 // as its link to proceed necessary sql query.
 //
 // Note that it returns a map containing the field name and its corresponding fields.
@@ -54,12 +71,12 @@ func (d *DriverWrapperDB) Tables(ctx context.Context, schema ...string) (tables 
 // It's using cache feature to enhance the performance, which is never expired util the
 // process restarts.
 func (d *DriverWrapperDB) TableFields(
-	ctx context.Context, table string, schema ...string,
+	ctx context.Context, table string, database ...string,
 ) (fields map[string]*TableField, err error) {
 	if table == "" {
 		return nil, nil
 	}
-	charL, charR := d.GetChars()
+	charL, charR := d.GetQuoteChars()
 	table = gstr.Trim(table, charL+charR)
 	if gstr.Contains(table, " ") {
 		return nil, gerror.NewCode(
@@ -72,12 +89,61 @@ func (d *DriverWrapperDB) TableFields(
 			`%s%s@%s#%s`,
 			cachePrefixTableFields,
 			d.GetGroup(),
-			gutil.GetOrDefaultStr(d.GetSchema(), schema...),
+			gutil.GetOrDefaultStr(d.GetDatabase(), database...),
 			table,
 		)
 		value = tableFieldsMap.GetOrSetFuncLock(cacheKey, func() interface{} {
 			ctx = context.WithValue(ctx, ctxKeyInternalProducedSQL, struct{}{})
-			fields, err = d.DB.TableFields(ctx, table, schema...)
+			fields, err = d.DB.TableFields(ctx, table, database...)
+			if err != nil {
+				return nil
+			}
+			return fields
+		})
+	)
+	if value != nil {
+		fields = value.(map[string]*TableField)
+	}
+	return
+}
+
+// TableFieldsInSchema retrieves and returns the fields' information of specified table of given
+// database's schema.
+//
+// The parameter `schema` is required. It set the search_path to `schema` in pgsql, set current_schema `schema` in oracle or DB2, set default_schema to `schema` in mssql.
+//
+// The parameter `database` is optional, if given nil it automatically retrieves a raw sql connection
+// as its link to proceed necessary sql query.
+// Note that it returns a map containing the field name and its corresponding fields.
+// As a map is unsorted, the TableField struct has an "Index" field marks its sequence in
+// the fields.
+//
+// It's using cache feature to enhance the performance, which is never expired util the
+// process restarts.
+func (d *DriverWrapperDB) TableFieldsInSchema(ctx context.Context, table string, schema string, database ...string) (fields map[string]*TableField, err error) {
+	if table == "" {
+		return nil, nil
+	}
+	charL, charR := d.GetQuoteChars()
+	table = gstr.Trim(table, charL+charR)
+	if gstr.Contains(table, " ") {
+		return nil, gerror.NewCode(
+			gcode.CodeInvalidParameter,
+			"function TableFieldsInSchema supports only single table operations",
+		)
+	}
+	var (
+		cacheKey = fmt.Sprintf(
+			`%s%s@%s?%s#%s`,
+			cachePrefixTableFieldsInSchema,
+			d.GetGroup(),
+			gutil.GetOrDefaultStr(d.GetDatabase(), database...),
+			gutil.GetOrDefaultStr(d.GetSchema(), schema),
+			table,
+		)
+		value = tableFieldsMap.GetOrSetFuncLock(cacheKey, func() interface{} {
+			ctx = context.WithValue(ctx, ctxKeyInternalProducedSQL, struct{}{})
+			fields, err = d.DB.TableFieldsInSchema(ctx, table, schema, database...)
 			if err != nil {
 				return nil
 			}

@@ -759,6 +759,7 @@ func (m *Model) formatCondition(
 			WhereHolder: havingHolder,
 			OmitNil:     m.option&optionOmitNilWhere > 0,
 			OmitEmpty:   m.option&optionOmitEmptyWhere > 0,
+			Database:    m.database,
 			Schema:      m.schema,
 			Table:       m.tables,
 		})

@@ -41,7 +41,7 @@ type ConfigNode struct {
 	Charset              string        `json:"charset"`              // (Optional, "utf8" in default) Custom charset when operating on database.
 	Protocol             string        `json:"protocol"`             // (Optional, "tcp" in default) See net.Dial for more information which networks are available.
 	Timezone             string        `json:"timezone"`             // (Optional) Sets the time zone for displaying and interpreting time stamps.
-	Namespace            string        `json:"namespace"`            // (Optional) Namespace for some databases. Eg, in pgsql, the `Name` acts as the `catalog`, the `NameSpace` acts as the `schema`.
+	Schema               string        `json:"schema"`               // (Optional) Schema for some databases. Eg, in pgsql, the `Name` acts as the `database`, the `Schema` acts as the `namespace` which is a named containers for tables. But in mysql, the `Schema` acts as same as the `Name`.
 	MaxIdleConnCount     int           `json:"maxIdle"`              // (Optional) Max idle connection configuration for underlying connection pool.
 	MaxOpenConnCount     int           `json:"maxOpen"`              // (Optional) Max open connection configuration for underlying connection pool.
 	MaxConnLifeTime      time.Duration `json:"maxLifeTime"`          // (Optional) Max amount of time a connection may be idle before being closed.
@@ -257,13 +257,22 @@ func (c *Core) GetPrefix() string {
 	return c.config.Prefix
 }
 
-// GetSchema returns the schema configured.
+// GetSchema returns the database's schema name configured
 func (c *Core) GetSchema() string {
 	schema := c.schema
 	if schema == "" {
-		schema = c.db.GetConfig().Name
+		schema = c.db.GetConfig().Schema
 	}
 	return schema
+}
+
+// GetDatabase returns the database name configured.
+func (c *Core) GetDatabase() string {
+	database := c.database
+	if database == "" {
+		database = c.db.GetConfig().Name
+	}
+	return database
 }
 
 func parseConfigNodeLink(node *ConfigNode) *ConfigNode {

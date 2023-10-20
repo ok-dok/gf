@@ -102,17 +102,16 @@ func (d *Driver) Open(config *gdb.ConfigNode) (db *sql.DB, err error) {
 	return
 }
 
-// GetChars returns the security char for this type of database.
-func (d *Driver) GetChars() (charLeft string, charRight string) {
+func (d *Driver) GetQuoteChars() (charLeft string, charRight string) {
 	return quoteChar, quoteChar
 }
 
 // Tables retrieves and returns the tables of current schema.
 // It's mainly used in cli tool chain for automatically generating the models.
-func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string, err error) {
+func (d *Driver) Tables(ctx context.Context, database ...string) (tables []string, err error) {
 	var result gdb.Result
-	// When schema is empty, return the default link
-	link, err := d.SlaveLink(schema...)
+	// When database is empty, return the default link
+	link, err := d.SlaveLink(database...)
 	if err != nil {
 		return nil, err
 	}
@@ -132,15 +131,17 @@ func (d *Driver) Tables(ctx context.Context, schema ...string) (tables []string,
 }
 
 // TableFields retrieves and returns the fields' information of specified table of current schema.
-func (d *Driver) TableFields(ctx context.Context, table string, schema ...string) (fields map[string]*gdb.TableField, err error) {
+func (d *Driver) TableFields(
+	ctx context.Context, table string, database ...string,
+) (fields map[string]*gdb.TableField, err error) {
 	var (
 		result gdb.Result
 		link   gdb.Link
-		// When no schema is specified, the configuration item is returned by default
-		usedSchema = gutil.GetOrDefaultStr(d.GetSchema(), schema...)
+		// When no database is specified, the configuration item is returned by default
+		usedDatabase = gutil.GetOrDefaultStr(d.GetDatabase(), database...)
 	)
-	// When usedSchema is empty, return the default link
-	if link, err = d.SlaveLink(usedSchema); err != nil {
+	// When usedDatabase is empty, return the default link
+	if link, err = d.SlaveLink(usedDatabase); err != nil {
 		return nil, err
 	}
 	// The link has been distinguished and no longer needs to judge the owner
@@ -235,7 +236,7 @@ func (d *Driver) DoInsert(
 		}
 		var (
 			keysSort     []string
-			charL, charR = d.GetChars()
+			charL, charR = d.GetQuoteChars()
 		)
 		// Column names need to be aligned in the syntax
 		for k := range list[0] {

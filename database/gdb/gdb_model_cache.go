@@ -8,6 +8,7 @@ package gdb
 
 import (
 	"context"
+	"github.com/gogf/gf/v2/util/gutil"
 	"time"
 
 	"github.com/gogf/gf/v2/internal/intlog"
@@ -146,7 +147,8 @@ func (m *Model) saveSelectResultToCache(
 func (m *Model) makeSelectCacheKey(sql string, args ...interface{}) string {
 	return m.db.GetCore().makeSelectCacheKey(
 		m.cacheOption.Name,
-		m.db.GetSchema(),
+		gutil.GetOrDefaultStr(m.db.GetDatabase(), m.database),
+		gutil.GetOrDefaultStr(gutil.GetOrDefaultStr(m.db.GetSchema()), m.schema),
 		m.db.GetCore().guessPrimaryTableName(m.tables),
 		sql,
 		args...,

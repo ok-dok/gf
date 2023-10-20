@@ -16,12 +16,6 @@ import (
 	"github.com/gogf/gf/v2/util/gutil"
 )
 
-var (
-	createdFiledNames = []string{"created_at", "create_at"} // Default filed names of table for automatic-filled created datetime.
-	updatedFiledNames = []string{"updated_at", "update_at"} // Default filed names of table for automatic-filled updated datetime.
-	deletedFiledNames = []string{"deleted_at", "delete_at"} // Default filed names of table for automatic-filled deleted datetime.
-)
-
 // Unscoped disables the auto-update time feature for insert, update and delete options.
 func (m *Model) Unscoped() *Model {
 	model := m.getModel()
@@ -32,7 +26,7 @@ func (m *Model) Unscoped() *Model {
 // getSoftFieldNameCreate checks and returns the field name for record creating time.
 // If there's no field name for storing creating time, it returns an empty string.
 // It checks the key with or without cases or chars '-'/'_'/'.'/' '.
-func (m *Model) getSoftFieldNameCreated(schema string, table string) string {
+func (m *Model) getSoftFieldNameCreated(database, schema, table string) string {
 	// It checks whether this feature disabled.
 	if m.db.GetConfig().TimeMaintainDisabled {
 		return ""
@@ -45,15 +39,15 @@ func (m *Model) getSoftFieldNameCreated(schema string, table string) string {
 	}
 	config := m.db.GetConfig()
 	if config.CreatedAt != "" {
-		return m.getSoftFieldName(schema, tableName, []string{config.CreatedAt})
+		return m.getSoftFieldName(database, schema, tableName, []string{config.CreatedAt})
 	}
-	return m.getSoftFieldName(schema, tableName, createdFiledNames)
+	return m.getSoftFieldName(database, schema, tableName, m.db.GetCore().GetCreatedFiledNames())
 }
 
 // getSoftFieldNameUpdate checks and returns the field name for record updating time.
 // If there's no field name for storing updating time, it returns an empty string.
 // It checks the key with or without cases or chars '-'/'_'/'.'/' '.
-func (m *Model) getSoftFieldNameUpdated(schema string, table string) (field string) {
+func (m *Model) getSoftFieldNameUpdated(database, schema, table string) (field string) {
 	// It checks whether this feature disabled.
 	if m.db.GetConfig().TimeMaintainDisabled {
 		return ""
@@ -66,15 +60,15 @@ func (m *Model) getSoftFieldNameUpdated(schema string, table string) (field stri
 	}
 	config := m.db.GetConfig()
 	if config.UpdatedAt != "" {
-		return m.getSoftFieldName(schema, tableName, []string{config.UpdatedAt})
+		return m.getSoftFieldName(database, schema, tableName, []string{config.UpdatedAt})
 	}
-	return m.getSoftFieldName(schema, tableName, updatedFiledNames)
+	return m.getSoftFieldName(database, schema, tableName, m.db.GetCore().GetUpdatedFiledNames())
 }
 
 // getSoftFieldNameDelete checks and returns the field name for record deleting time.
 // If there's no field name for storing deleting time, it returns an empty string.
 // It checks the key with or without cases or chars '-'/'_'/'.'/' '.
-func (m *Model) getSoftFieldNameDeleted(schema string, table string) (field string) {
+func (m *Model) getSoftFieldNameDeleted(database, schema, table string) (field string) {
 	// It checks whether this feature disabled.
 	if m.db.GetConfig().TimeMaintainDisabled {
 		return ""
@@ -87,15 +81,15 @@ func (m *Model) getSoftFieldNameDeleted(schema string, table string) (field stri
 	}
 	config := m.db.GetConfig()
 	if config.DeletedAt != "" {
-		return m.getSoftFieldName(schema, tableName, []string{config.DeletedAt})
+		return m.getSoftFieldName(database, schema, tableName, []string{config.DeletedAt})
 	}
-	return m.getSoftFieldName(schema, tableName, deletedFiledNames)
+	return m.getSoftFieldName(database, schema, tableName, m.db.GetCore().GetDeletedFiledNames())
 }
 
 // getSoftFieldName retrieves and returns the field name of the table for possible key.
-func (m *Model) getSoftFieldName(schema string, table string, keys []string) (field string) {
+func (m *Model) getSoftFieldName(database, schema, table string, keys []string) (field string) {
 	// Ignore the error from TableFields.
-	fieldsMap, _ := m.TableFields(table, schema)
+	fieldsMap, _ := m.TableFieldsInSchema(table, schema, database)
 	if len(fieldsMap) > 0 {
 		for _, key := range keys {
 			field, _ = gutil.MapPossibleItemByKey(
@@ -141,7 +135,7 @@ func (m *Model) getConditionForSoftDeleting() string {
 		return conditionArray.Join(" AND ")
 	}
 	// Only one table.
-	if fieldName := m.getSoftFieldNameDeleted("", m.tablesInit); fieldName != "" {
+	if fieldName := m.getSoftFieldNameDeleted(m.database, m.schema, m.tablesInit); fieldName != "" {
 		return fmt.Sprintf(`%s IS NULL`, m.db.GetCore().QuoteWord(fieldName))
 	}
 	return ""
@@ -155,19 +149,24 @@ func (m *Model) getConditionForSoftDeleting() string {
 // - demo
 func (m *Model) getConditionOfTableStringForSoftDeleting(s string) string {
 	var (
-		field  string
-		table  string
-		schema string
-		array1 = gstr.SplitAndTrim(s, " ")
-		array2 = gstr.SplitAndTrim(array1[0], ".")
+		field    string
+		table    string
+		schema   string
+		database string
+		array1   = gstr.SplitAndTrim(s, " ")
+		array2   = gstr.SplitAndTrim(array1[0], ".")
 	)
-	if len(array2) >= 2 {
+	if len(array2) >= 3 {
+		table = array2[2]
+		schema = array2[1]
+		database = array2[0]
+	} else if len(array2) == 2 {
 		table = array2[1]
 		schema = array2[0]
 	} else {
 		table = array2[0]
 	}
-	field = m.getSoftFieldNameDeleted(schema, table)
+	field = m.getSoftFieldNameDeleted(database, schema, table)
 	if field == "" {
 		return ""
 	}

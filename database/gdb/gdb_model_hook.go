@@ -133,7 +133,7 @@ func (h *HookSelectInput) Next(ctx context.Context) (result Result, err error) {
 			`(?i) FROM ([\S]+)`,
 			toBeCommittedSql,
 			func(match []string) string {
-				charL, charR := h.Model.db.GetChars()
+				charL, charR := h.Model.db.GetQuoteChars()
 				return fmt.Sprintf(` FROM %s%s%s`, charL, h.Table, charR)
 			},
 		)

@@ -21,8 +21,8 @@ import (
 const (
 	TableSize        = 10
 	TableName        = "user"
-	TestSchema1      = "test1"
-	TestSchema2      = "test2"
+	TestDatabase1    = "test1"
+	TestDatabase2    = "test2"
 	TestPartitionDB  = "test3"
 	TableNamePrefix1 = "gf_"
 	TestDbUser       = "root"
@@ -69,17 +69,17 @@ func init() {
 		db = r
 	}
 	schemaTemplate := "CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET UTF8"
-	if _, err := db.Exec(ctx, fmt.Sprintf(schemaTemplate, TestSchema1)); err != nil {
+	if _, err := db.Exec(ctx, fmt.Sprintf(schemaTemplate, TestDatabase1)); err != nil {
 		gtest.Error(err)
 	}
-	if _, err := db.Exec(ctx, fmt.Sprintf(schemaTemplate, TestSchema2)); err != nil {
+	if _, err := db.Exec(ctx, fmt.Sprintf(schemaTemplate, TestDatabase2)); err != nil {
 		gtest.Error(err)
 	}
 	if _, err := db.Exec(ctx, fmt.Sprintf(schemaTemplate, TestPartitionDB)); err != nil {
 		gtest.Error(err)
 	}
-	db = db.Schema(TestSchema1)
-	db2 = db.Schema(TestSchema2)
+	db = db.Database(TestDatabase1)
+	db2 = db.Database(TestDatabase2)
 	db3 = db.Schema(TestPartitionDB)
 	// Prefix db.
 	if r, err := gdb.NewByGroup("prefix"); err != nil {
@@ -87,13 +87,13 @@ func init() {
 	} else {
 		dbPrefix = r
 	}
-	if _, err := dbPrefix.Exec(ctx, fmt.Sprintf(schemaTemplate, TestSchema1)); err != nil {
+	if _, err := dbPrefix.Exec(ctx, fmt.Sprintf(schemaTemplate, TestDatabase1)); err != nil {
 		gtest.Error(err)
 	}
-	if _, err := dbPrefix.Exec(ctx, fmt.Sprintf(schemaTemplate, TestSchema2)); err != nil {
+	if _, err := dbPrefix.Exec(ctx, fmt.Sprintf(schemaTemplate, TestDatabase2)); err != nil {
 		gtest.Error(err)
 	}
-	dbPrefix = dbPrefix.Schema(TestSchema1)
+	dbPrefix = dbPrefix.Database(TestDatabase1)
 
 	// Invalid db.
 	if r, err := gdb.NewByGroup("nodeinvalid"); err != nil {
@@ -101,7 +101,7 @@ func init() {
 	} else {
 		dbInvalid = r
 	}
-	dbInvalid = dbInvalid.Schema(TestSchema1)
+	dbInvalid = dbInvalid.Database(TestDatabase1)
 }
 
 func createTable(table ...string) string {

@@ -126,22 +126,34 @@ func (c *Core) Close(ctx context.Context) (err error) {
 
 // Master creates and returns a connection from master node if master-slave configured.
 // It returns the default connection if master-slave not configured.
-func (c *Core) Master(schema ...string) (*sql.DB, error) {
+func (c *Core) Master(database ...string) (*sql.DB, error) {
+	return c.MasterWithSchema(c.GetSchema(), database...)
+}
+
+// MasterWithSchema creates and returns a connection from master node if master-slave configured.
+// MasterWithSchema acts like function Master with additional `schema` parameter specifying the schema for searching.
+// It returns the default connection if master-slave not configured.
+func (c *Core) MasterWithSchema(schema string, database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.schema, schema...)
-		charL, charR = c.db.GetChars()
+		usedDatabase = gutil.GetOrDefaultStr(c.GetDatabase(), database...)
 	)
-	return c.getSqlDb(true, gstr.Trim(usedSchema, charL+charR))
+	return c.getSqlDb(true, schema, usedDatabase)
 }
 
 // Slave creates and returns a connection from slave node if master-slave configured.
 // It returns the default connection if master-slave not configured.
-func (c *Core) Slave(schema ...string) (*sql.DB, error) {
+func (c *Core) Slave(database ...string) (*sql.DB, error) {
+	return c.SlaveWithSchema(c.GetSchema(), database...)
+}
+
+// SlaveWithSchema creates and returns a connection from slave node if master-slave configured.
+// SlaveWithSchema acts like function Slave with additional `schema` parameter specifying the schema for searching.
+// It returns the default connection if master-slave not configured.
+func (c *Core) SlaveWithSchema(schema string, database ...string) (*sql.DB, error) {
 	var (
-		usedSchema   = gutil.GetOrDefaultStr(c.schema, schema...)
-		charL, charR = c.db.GetChars()
+		usedDatabase = gutil.GetOrDefaultStr(c.GetDatabase(), database...)
 	)
-	return c.getSqlDb(false, gstr.Trim(usedSchema, charL+charR))
+	return c.getSqlDb(false, schema, usedDatabase)
 }
 
 // GetAll queries and returns data records from database.
@@ -482,7 +494,7 @@ func (c *Core) DoInsert(ctx context.Context, link Link, table string, list List,
 	}
 	// Prepare the batch result pointer.
 	var (
-		charL, charR = c.db.GetChars()
+		charL, charR = c.db.GetQuoteChars()
 		batchResult  = new(SqlResult)
 		keysStr      = charL + strings.Join(keys, charR+","+charL) + charR
 		operation    = GetInsertOperationByOption(option.InsertOption)
@@ -563,7 +575,7 @@ func (c *Core) formatOnDuplicate(columns []string, option DoInsertOption) string
 	} else {
 		for _, column := range columns {
 			// If it's SAVE operation, do not automatically update the creating time.
-			if c.isSoftCreatedFieldName(column) {
+			if c.IsSoftCreatedFieldName(column) {
 				continue
 			}
 			if len(onDuplicateStr) > 0 {
@@ -750,7 +762,7 @@ func (c *Core) writeSqlToLogger(ctx context.Context, sql *Sql) {
 	}
 	s := fmt.Sprintf(
 		"[%3d ms] [%s] [%s] [rows:%-3d] %s%s",
-		sql.End-sql.Start, sql.Group, sql.Schema, sql.RowsAffected, transactionIdStr, sql.Format,
+		sql.End-sql.Start, sql.Group, sql.Database, sql.RowsAffected, transactionIdStr, sql.Format,
 	)
 	if sql.Error != nil {
 		s += "\nError: " + sql.Error.Error()
@@ -785,8 +797,8 @@ func (c *Core) HasTable(name string) (bool, error) {
 	return result.Bool(), nil
 }
 
-// isSoftCreatedFieldName checks and returns whether given filed name is an automatic-filled created time.
-func (c *Core) isSoftCreatedFieldName(fieldName string) bool {
+// IsSoftCreatedFieldName checks and returns whether given filed name is an automatic-filled created time.
+func (c *Core) IsSoftCreatedFieldName(fieldName string) bool {
 	if fieldName == "" {
 		return false
 	}
@@ -794,9 +806,9 @@ func (c *Core) isSoftCreatedFieldName(fieldName string) bool {
 		if utils.EqualFoldWithoutChars(fieldName, config.CreatedAt) {
 			return true
 		}
-		return gstr.InArray(append([]string{config.CreatedAt}, createdFiledNames...), fieldName)
+		return gstr.InArray(append([]string{config.CreatedAt}, c.GetCreatedFiledNames()...), fieldName)
 	}
-	for _, v := range createdFiledNames {
+	for _, v := range c.GetCreatedFiledNames() {
 		if utils.EqualFoldWithoutChars(fieldName, v) {
 			return true
 		}
@@ -813,4 +825,16 @@ func (c *Core) FormatSqlBeforeExecuting(sql string, args []interface{}) (newSql 
 	// sql = gstr.Replace(sql, "\n", " ")
 	// sql, _ = gregex.ReplaceString(`\s{2,}`, ` `, sql)
 	return handleArguments(sql, args)
+}
+
+func (c *Core) GetCreatedFiledNames() []string {
+	return autoFilledFiledNames.createdFiledNames
+}
+
+func (c *Core) GetUpdatedFiledNames() []string {
+	return autoFilledFiledNames.updatedFiledNames
+}
+
+func (c *Core) GetDeletedFiledNames() []string {
+	return autoFilledFiledNames.deletedFiledNames
 }

@@ -7,6 +7,7 @@
 package gdb
 
 import (
+	"github.com/gogf/gf/v2/container/gtype"
 	"time"
 
 	"github.com/gogf/gf/v2/container/gset"
@@ -27,15 +28,23 @@ func (m *Model) QuoteWord(s string) string {
 }
 
 // TableFields retrieves and returns the fields' information of specified table of current
-// schema.
+// database.
 //
 // Also see DriverMysql.TableFields.
-func (m *Model) TableFields(tableStr string, schema ...string) (fields map[string]*TableField, err error) {
+func (m *Model) TableFields(tableStr string, database ...string) (fields map[string]*TableField, err error) {
+	return m.TableFieldsInSchema(tableStr, m.schema, database...)
+}
+
+// TableFieldsInSchema retrieves and returns the fields' information of specified table of current
+// database.
+//
+// Also see DriverMysql.TableFields.
+func (m *Model) TableFieldsInSchema(tableStr string, schema string, database ...string) (fields map[string]*TableField, err error) {
 	var (
-		table      = m.db.GetCore().guessPrimaryTableName(tableStr)
-		usedSchema = gutil.GetOrDefaultStr(m.schema, schema...)
+		table        = m.db.GetCore().guessPrimaryTableName(tableStr)
+		usedDatabase = gutil.GetOrDefaultStr(m.database, database...)
 	)
-	return m.db.TableFields(m.GetCtx(), table, usedSchema)
+	return m.db.TableFieldsInSchema(m.GetCtx(), table, schema, usedDatabase)
 }
 
 // getModel creates and returns a cloned model of current model if `safe` is true, or else it returns
@@ -117,7 +126,7 @@ func (m *Model) filterDataForInsertOrUpdate(data interface{}) (interface{}, erro
 func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEmpty bool) (Map, error) {
 	var err error
 	data, err = m.db.GetCore().mappingAndFilterData(
-		m.GetCtx(), m.schema, m.tablesInit, data, m.filter,
+		m.GetCtx(), m.database, m.schema, m.tablesInit, data, m.filter,
 	)
 	if err != nil {
 		return nil, err
@@ -163,13 +172,76 @@ func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEm
 			tempMap[k] = v
 		}
 		data = tempMap
+	} else if m.option&optionOmitEmptyPK > 0 { // remove key-value pair of which key is primary key and value is empty
+		tempMap := make(Map, len(data))
+		for k, v := range data {
+			if k == m.getPrimaryKey() {
+				if empty.IsEmpty(v) {
+					continue
+				}
+				// Special type filtering.
+				switch r := v.(type) {
+				//gtype.Int, gtype.Int32, gtype.Int64, gtype.Uint, gtype.Uint32, gtype.Uint64
+				case gtype.Int:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Int:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Int32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Int32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Int64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Int64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Uint:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Uint:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Uint32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Uint32:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case gtype.Uint64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				case *gtype.Uint64:
+					if empty.IsEmpty(r.Val()) {
+						continue
+					}
+				}
+			}
+			tempMap[k] = v
+		}
+		data = tempMap
 	}
 
 	if len(m.fields) > 0 && m.fields != "*" {
 		// Keep specified fields.
 		var (
 			set          = gset.NewStrSetFrom(gstr.SplitAndTrim(m.fields, ","))
-			charL, charR = m.db.GetChars()
+			charL, charR = m.db.GetQuoteChars()
 			chars        = charL + charR
 		)
 		set.Walk(func(item string) string {
@@ -206,13 +278,13 @@ func (m *Model) getLink(master bool) Link {
 	}
 	switch linkType {
 	case linkTypeMaster:
-		link, err := m.db.GetCore().MasterLink(m.schema)
+		link, err := m.db.GetCore().MasterLinkWithSchema(m.schema, m.database)
 		if err != nil {
 			panic(err)
 		}
 		return link
 	case linkTypeSlave:
-		link, err := m.db.GetCore().SlaveLink(m.schema)
+		link, err := m.db.GetCore().SlaveLinkWithSchema(m.schema, m.database)
 		if err != nil {
 			panic(err)
 		}

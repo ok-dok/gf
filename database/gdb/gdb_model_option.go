@@ -15,6 +15,7 @@ const (
 	optionOmitNilWhere                                                    // 32
 	optionOmitNilData                                                     // 64
 	optionOmitNilDataList                                                 // 128
+	optionOmitEmptyPK                                                     // 256
 )
 
 // OmitEmpty sets optionOmitEmpty option for the model, which automatically filers
@@ -22,6 +23,14 @@ const (
 func (m *Model) OmitEmpty() *Model {
 	model := m.getModel()
 	model.option = model.option | optionOmitEmpty
+	return model
+}
+
+// OmitEmptyPK sets optionOmitEmptyPK option for the model, which automatically filters
+// the primary key parameter for `empty` value in the data.
+func (m *Model) OmitEmptyPK() *Model {
+	model := m.getModel()
+	model.option = model.option | optionOmitEmptyPK
 	return model
 }
 

@@ -11,15 +11,15 @@ import (
 	"bytes"
 	"context"
 	"github.com/gogf/gf/v2/encoding/gcharset"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/internal/intlog"
 	"github.com/gogf/gf/v2/os/gfile"
 	"github.com/gogf/gf/v2/text/gstr"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"unicode/utf8"
 )
 
 // ZipPath compresses `fileOrFolderPaths` to `dstFilePath` using zip compressing algorithm.
@@ -175,7 +175,8 @@ func unZipFileWithReader(reader *zip.Reader, dstFolderPath string, zippedPrefix 
 	for _, file := range reader.File {
 		name = gstr.Replace(file.Name, `\`, `/`)
 		name = gstr.Trim(name, "/")
-		if file.NonUTF8 {
+		validUTF8 := utf8.Valid([]byte(file.Name))
+		if !validUTF8 && file.NonUTF8 {
 			if nameWithUTF8, err := gcharset.ToUTF8("GBK", file.Name); err == nil {
 				name = nameWithUTF8
 			} else if nameWithUTF8, err = gcharset.ToUTF8("GB18030", file.Name); err == nil {

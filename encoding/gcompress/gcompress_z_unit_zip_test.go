@@ -255,7 +255,7 @@ func Test_Unzip(t *testing.T) {
 			srcPath = gtest.DataPath("zip", "path3")
 		)
 		//fmt.Println(srcPath)
-		err := gcompress.UnZipFile(gfile.Join(srcPath, "1.zip"), srcPath)
+		err := gcompress.UnZipFile(gfile.Join(srcPath, "中文测试-abcd.zip"), srcPath)
 		t.AssertNil(err)
 	})
 
